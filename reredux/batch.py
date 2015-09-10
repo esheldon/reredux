@@ -136,6 +136,10 @@ class LSFMaker(BatchMaker):
 
     def get_text(self):
         return _lsf_template % self
+
+
+
+
 _lsf_template="""#!/bin/bash
 #BSUB -J %(job_name)s
 #BSUB -n 1
