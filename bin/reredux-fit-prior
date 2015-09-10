@@ -1,0 +1,91 @@
+#!/usr/bin/env python
+from __future__ import print_function
+import os
+import numpy
+import ngmix
+import reredux
+from reredux import files
+
+from argparse import ArgumentParser
+parser=ArgumentParser(__doc__)
+
+parser.add_argument('run',help='sim run')
+parser.add_argument('field',help='var to fit, e.g. exp_pars, coadd_exp_pars')
+parser.add_argument('field_id',type=int, help='e.g. 4 for T, 5 for flux')
+parser.add_argument('ngauss',type=int,help='number of gaussians to fit')
+parser.add_argument('name',help='name for output, e.g. log_T')
+
+
+class PriorFitter(object):
+    def __init__(self, run, field, field_id, ngauss, name):
+        self.run=run
+        self.field=field
+        self.field_id=field_id
+        self.ngauss=ngauss
+        self.name=name
+
+    def go(self):
+        self.make_dir()
+        self.read_data()
+        self.fit_prior()
+        self.make_plot()
+        self.write_prior()
+
+    def make_dir(self):
+        dir = files.get_fitprior_dir(self.run)
+        if not os.path.exists(dir):
+            os.makedirs(dir)
+
+    def fit_prior(self):
+        from ngmix.gmix import GMixND
+
+        print("fitting",self.ngauss,"gaussians to",self.field)
+
+        gm = GMixND()
+
+        gm.fit(self.data, self.ngauss)
+
+        self.prior = gm
+
+    def write_prior(self):
+        url = files.get_fitprior_file(self.run, self.name, ext='fits')
+        print("writing to:",url)
+        self.prior.save_mixture(url)
+
+    def make_plot(self):
+        import biggles
+        eps = files.get_fitprior_file(self.run, self.name, ext='eps')
+        
+        r=self.prior.sample(1000000)
+
+        h=biggles.make_histc(self.data, nbin=100, ylog=True, norm=1)
+        hr=biggles.make_histc(r, nbin=100, ylog=True, color='red', norm=1)
+
+        h.label='data'
+        hr.label='model'
+
+        key=biggles.PlotKey(0.9,0.9,[h,hr], halign='right')
+
+        plt=biggles.FramedPlot()
+        plt.xlabel=self.name
+        plt.add(h, hr, key)
+
+        print("writing plot:",eps)
+        plt.write_eps(eps)
+
+
+    def read_data(self):
+        data=files.read_collated(self.run)
+
+        fdata = data[self.field][:,self.field_id]
+
+        self.data = fdata
+
+def main():
+    args = parser.parse_args()
+
+    fitter=PriorFitter(args.run, args.field, args.field_id,
+                       args.ngauss, args.name)
+    fitter.go()
+
+main()
