@@ -28,42 +28,49 @@ pre_find_center: True
 do_shear: False
 
 psf_pars:
-    model: 'em3'
-    ntry: 20
-    maxiter: 5000
-    tol: 5.0e-6
+  model: 'em3'
+  ntry: 20
+  maxiter: 5000
+  tol: 5.0e-6
 
 max_pars:
-    method: 'lm'
-    ntry: 2
-    
-    lm_pars:
-        maxfev: 4000
+  method: 'lm'
+  ntry: 2
+  
+  lm_pars:
+    maxfev: 4000
 
 replace_cov: False
 
 round_pars:
-    fitter_type: 'max'
+  fitter_type: 'max'
 
 
 metacal_pars:
-    step: 0.01
+  step: 0.01
 
 use_logpars: True
+
 model_pars:
-    exp:
-        g_prior_type: "cosmos-sersic"
+  exp:
+    g:
+      type: "ba"
+      sigma: 0.3
 
-        # for asinh pars
-        T_prior_type: "TwoSidedErf"
-        T_prior_pars: [-10.0, 1.0, 15.0, 1.0]
+    T:
+      type: "gmixnd"
+      run: "max-deep01"
+      extra: "log_T"
+      cov_factor: 1.1
 
-        counts_prior_type: "TwoSidedErf"
-        counts_prior_pars: [-10.0, 1.0, 15.0, 1.0]
-        counts_prior_repeat: True
+    counts:
+      type: "TwoSidedErf"
+      pars: [-1.0, 1.0, 4.0, 1.0]
+      repeat: True
 
-        cen_prior_type: "dgauss"
-        cen_prior_pars: [0.27]
+    cen:
+      type: "dgauss"
+      width: 0.27
 
 # more than double the time
 time_per: null
