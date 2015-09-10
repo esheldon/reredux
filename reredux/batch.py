@@ -40,12 +40,17 @@ class BatchMaker(dict):
         """
 
         nfiles = self.reredux_conf['nfiles']
+        self.njobs_written = 0
+
         for fnum in xrange(nfiles):
             for beg,end in zip(self.beglist, self.endlist):
 
                 self.write_script(fnum, beg, end)
 
         print("scripts are in:",self.get_batch_dir())
+        print("total jobs written:",self.njobs_written)
+        print(self._walltime_mess)
+
     def write_script(self, fnum, beg, end):
         """
         write the script for a single split
@@ -69,6 +74,7 @@ class BatchMaker(dict):
                 os.remove(fname)
             return
 
+        self.njobs_written += 1
         print("writing:",fname)
         with open(fname,'w') as fobj:
             text = self.get_text()
@@ -99,11 +105,12 @@ class BatchMaker(dict):
             tstr = '%d:00' % hours_round
 
         self['walltime'] = tstr
-        print("nper:",self.runconf['nper'],
-              "time per:",self.runconf['time_per'],
-              "hours:",time_hours,
-              "walltime:",self['walltime'])
 
+        self._walltime_mess = " ".join(["nper: %d" % self.runconf['nper'],
+                                        "time per: %g" % self.runconf['time_per'],
+                                        "hours: %g" % time_hours,
+                                        "walltime: %s" %self['walltime']])
+        
 
     def _setup_splits(self):
         """
