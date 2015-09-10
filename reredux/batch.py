@@ -96,9 +96,11 @@ class BatchMaker(dict):
         time_seconds = time_per_seconds*self.runconf['nper']
         time_hours = time_seconds / 3600.0
 
-        hours_round = int(round(time_hours))
-        if hours_round < 1:
-            hours_round=1
+        # always add an extra hour
+        time_hours_supp = time_hours + 1.0
+
+        hours_round = int(round(time_hours_supp))
+
         if time_hours < 10:
             tstr = '0%d:00' % hours_round
         else:
