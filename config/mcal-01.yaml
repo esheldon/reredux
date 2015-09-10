@@ -59,8 +59,8 @@ model_pars:
 
     T:
       type: "gmixnd"
-      run: "max-deep01"
-      extra: "log_T"
+      file: "${REREDUX_OUTPUTS_DIR}/max-deep01/fitprior/max-deep01-fitprior-log_T.fits"
+      # broader than fit prior
       cov_factor: 1.1
 
     counts:
@@ -73,7 +73,10 @@ model_pars:
       width: 0.27
 
 # more than double the time
-time_per: null
+time_per: 0.9
+
+# all
+nper: 1000
 
 # checkpoint times in minutes, needed for condor in case we pass a batch system
 # limit such as in the condor scavenge.
