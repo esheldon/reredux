@@ -41,12 +41,16 @@ def get_psf_file(version, fnum, deep=False):
 
     return os.path.join(d, fname)
 
+#
+# run base dir
+#
 
-def get_output_basedir():
+def get_rundir(run):
     """
     my outputs
     """
-    return os.environ['REREDUX_OUTPUTS_DIR']
+    d=os.environ['REREDUX_OUTPUTS_DIR']
+    return os.path.join(d, run)
 
 
 #
@@ -58,7 +62,7 @@ def get_output_dir(run):
     output files
     """
 
-    basedir = get_output_basedir()
+    basedir = get_rundir(run)
     return os.path.join(basedir, 'outputs')
 
 def get_output_file(run, fnum, beg, end):
@@ -87,7 +91,7 @@ def get_collated_dir(run):
     output files
     """
 
-    basedir = get_output_basedir()
+    basedir = get_rundir(run)
     return os.path.join(basedir, 'collated')
 
 def get_collated_file(run):
@@ -99,6 +103,40 @@ def get_collated_file(run):
     fname = '%s.fits' % run
     return os.path.join(dir, fname)
 
+def read_collated(run, **kw):
+    """
+    read in the entire collated fits file
+    """
+    import fitsio
+
+    fname=get_collated_file(run)
+    print("reading:",fname)
+    return fitsio.read(fname, **kw)
+
+#
+# priors
+#
+
+def get_fitprior_dir(run):
+    """
+    output files
+    """
+
+    basedir = get_rundir(run)
+    return os.path.join(basedir, 'fitprior')
+
+def get_fitprior_file(run, name, ext='fits'):
+    """
+    location of output file
+    """
+
+    dir=get_fitprior_dir(run)
+
+    fname='%s-fitprior-%s.%s' % (run, name, ext)
+
+    return os.path.join(dir, fname)
+
+
 #
 # shear averaged files
 #
@@ -108,7 +146,7 @@ def get_averaged_dir(run):
     output files
     """
 
-    basedir = get_output_basedir()
+    basedir = get_rundir(run)
     return os.path.join(basedir, 'averaged')
 
 def get_averaged_file(run, beg, end):
@@ -162,7 +200,7 @@ def get_lsf_dir(run):
     output files
     """
 
-    basedir = get_output_basedir()
+    basedir = get_rundir(run)
     return os.path.join(basedir, 'lsf')
 
 
