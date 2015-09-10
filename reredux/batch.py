@@ -41,7 +41,7 @@ class BatchMaker(dict):
 
         nfiles = self.reredux_conf['nfiles']
         for fnum in xrange(nfiles):
-            for beg,end in zip(beglist, endlist):
+            for beg,end in zip(self.beglist, self.endlist):
 
                 self.write_script(fnum, beg, end)
 
