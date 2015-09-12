@@ -92,7 +92,10 @@ class BatchMaker(dict):
         self.reredux_conf = files.read_config(self.runconf['reredux_config'])
 
     def _set_walltime(self):
-        time_per_seconds = self.runconf['time_per']
+
+        nrand = self.runconf.get('nrand',1)
+
+        time_per_seconds = self.runconf['time_per']*nrand
         time_seconds = time_per_seconds*self.runconf['nper']
         time_hours = time_seconds / 3600.0
 
@@ -110,6 +113,7 @@ class BatchMaker(dict):
 
         self._walltime_mess = " ".join(["nper: %d" % self.runconf['nper'],
                                         "time per: %g" % self.runconf['time_per'],
+                                        "nrand: %d" % nrand,
                                         "hours: %g" % time_hours,
                                         "walltime: %s" %self['walltime']])
         

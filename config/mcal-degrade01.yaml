@@ -1,4 +1,7 @@
-reredux_config: "v1"
+reredux_config: "v2deep"
+
+target_noise: 0.0877
+nrand: 160
 
 fitter_type: "metacal-ngmix-boot"
 imageio_type: "meds-simp-sim"
@@ -75,10 +78,10 @@ model_pars:
       width: 0.27
 
 # more than double the time
-time_per: 0.9
+time_per: 0.35
 
 # all
-nper: 1000
+nper: 20
 
 # checkpoint times in minutes, needed for condor in case we pass a batch system
 # limit such as in the condor scavenge.
