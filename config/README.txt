@@ -15,11 +15,6 @@ great3reredux v1
     - flux, flat prior spanning what we see in deep01
     - T, gmixnd with 1.1 cov factor
 
-- mcal-02
-    - v2 sims
-    - flux, flat prior spanning what we see in deep01
-    - T, gmixnd with 1.1 cov factor
-
 - mcal-degrade01
     - v2 sims
     - flux, flat prior spanning what we see in deep01
@@ -27,10 +22,26 @@ great3reredux v1
         - was not refinding center in the noisy image
         - also bug, wrong target_noise
 
+
 - mcal-degrade02
     - v2 sims
     - flux, flat prior spanning what we see in deep01
     - T, gmixnd with 1.1 cov factor
     - this version finding cen for the noisy images, 
       and proper mean noise from shallow of 0.0877
+
+- mcal-02
+    - v2 sims
+    - flux, flat prior spanning what we see in deep01
+    - T, gmixnd with 1.1 cov factor
+        - using mcal-degrade02
+        s1: 0.0806 +/- 0.0008   s2: 0.0011 +/- 0.0009
+        fracerr: 0.00706 +/- 0.00984
+
+- mcal-03
+    - v2 sims
+    - same as mcal-02 but just testing with new code
+    - flux, flat prior spanning what we see in deep01
+    - T, gmixnd with 1.1 cov factor
+        - exactlyl the same, good
 
