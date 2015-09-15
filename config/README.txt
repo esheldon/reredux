@@ -1,3 +1,17 @@
+great3reredux v3
+----------------
+v3.yaml
+v3deep.yaml
+    - had bug (was sheared).  Matt is rerunning.
+    I will want to redo priors
+
+- max-v3d01
+    - max like run for priors
+- mcal-v3d01
+    - deep data
+- mcal-v3s01
+    - shallow data
+
 great3reredux v1
 -----------------
 
