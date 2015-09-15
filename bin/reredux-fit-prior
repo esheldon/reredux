@@ -43,7 +43,7 @@ class PriorFitter(object):
 
         gm = GMixND()
 
-        gm.fit(self.data, self.ngauss)
+        gm.fit(self.data, self.ngauss, min_covar=1.0e-6)
 
         self.prior = gm
 
@@ -69,6 +69,7 @@ class PriorFitter(object):
         plt=biggles.FramedPlot()
         plt.xlabel=self.name
         plt.add(h, hr, key)
+        plt.ylog=True
 
         print("writing plot:",eps)
         plt.write_eps(eps)
@@ -76,6 +77,12 @@ class PriorFitter(object):
 
     def read_data(self):
         data=files.read_collated(self.run)
+
+        g = numpy.sqrt(data[self.field][:,2]**2 + data[self.field][:,3]**2)
+        w,=numpy.where((data['flags']==0) & (g < 0.99) )
+        print("kept %d/%d with g < 0.99" % (w.size, data.size))
+
+        data=data[w]
 
         fdata = data[self.field][:,self.field_id]
 
