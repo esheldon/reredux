@@ -6,11 +6,15 @@ v3deep.yaml
     I will want to redo priors
 
 - max-v3d01
-    - max like run for priors
+    - max like run to get priors
 - mcal-v3d01
     - deep data
 - mcal-v3s01
     - shallow data
+
+    s1: 0.07996 +/- 0.00019
+    s2: 0.00045 +/- 0.00017
+    delta g/g = -0.0005 +/- 0.0024
 
 great3reredux v1
 -----------------
