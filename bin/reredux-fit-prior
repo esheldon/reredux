@@ -3,6 +3,7 @@ from __future__ import print_function
 import os
 import numpy
 import ngmix
+from ngmix.gmix import GMixND
 import reredux
 from reredux import files
 
@@ -29,6 +30,8 @@ class PriorFitter(object):
         self.read_data()
         self.fit_prior()
         self.make_plot()
+        self.make_plot(cov_fac=1.5)
+        self.make_plot(ylog=True)
         self.write_prior()
 
     def make_dir(self):
@@ -37,7 +40,6 @@ class PriorFitter(object):
             os.makedirs(dir)
 
     def fit_prior(self):
-        from ngmix.gmix import GMixND
 
         print("fitting",self.ngauss,"gaussians to",self.field)
 
@@ -52,14 +54,22 @@ class PriorFitter(object):
         print("writing to:",url)
         self.prior.save_mixture(url)
 
-    def make_plot(self):
+    def make_plot(self, ylog=False, cov_fac=None):
         import biggles
         eps = files.get_fitprior_file(self.run, self.name, ext='eps')
         
-        r=self.prior.sample(1000000)
+        nrand=1000000
+        if cov_fac is not None:
+            p=GMixND(weights=self.prior.weights,
+                     means=self.prior.means,
+                     covars=self.prior.covars*cov_fac)
+        else:
+            p=self.prior
 
-        h=biggles.make_histc(self.data, nbin=100, ylog=True, norm=1)
-        hr=biggles.make_histc(r, nbin=100, ylog=True, color='red', norm=1)
+        r=p.sample(nrand)
+
+        h=biggles.make_histc(self.data, nbin=100, ylog=ylog, norm=1)
+        hr=biggles.make_histc(r, nbin=100, ylog=ylog, color='red', norm=1)
 
         h.label='data'
         hr.label='model'
@@ -69,7 +79,13 @@ class PriorFitter(object):
         plt=biggles.FramedPlot()
         plt.xlabel=self.name
         plt.add(h, hr, key)
-        plt.ylog=True
+        plt.ylog=ylog
+
+        if ylog:
+            eps=eps.replace('.eps','-ylog.eps')
+        if cov_fac is not None:
+            eps=eps.replace('.eps','-cov-fac-%.2f.eps' % cov_fac)
+
 
         print("writing plot:",eps)
         plt.write_eps(eps)
