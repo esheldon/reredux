@@ -23,6 +23,8 @@ v3deep.yaml
     - deep data
 - mcal-g-v3s01
     - shallow data
+    s1: 0.0800 +/- 0.0002   s2: 0.0004 +/- 0.0002
+    delga t/g = -0.00059 +/- 0.00232
 
 
 
