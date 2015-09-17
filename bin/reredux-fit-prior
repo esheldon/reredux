@@ -16,14 +16,22 @@ parser.add_argument('field_id',type=int, help='e.g. 4 for T, 5 for flux')
 parser.add_argument('ngauss',type=int,help='number of gaussians to fit')
 parser.add_argument('name',help='name for output, e.g. log_T')
 
+parser.add_argument('--drange',help='range over which to fit data')
+
 
 class PriorFitter(object):
-    def __init__(self, run, field, field_id, ngauss, name):
+    def __init__(self, run, field, field_id, ngauss, name, drange=None):
         self.run=run
         self.field=field
         self.field_id=field_id
         self.ngauss=ngauss
         self.name=name
+
+        if drange is not None:
+            drange = drange.split(',')
+            drange = [float(d) for d in drange]
+
+        self.drange=drange
 
     def go(self):
         self.make_dir()
@@ -45,7 +53,7 @@ class PriorFitter(object):
 
         gm = GMixND()
 
-        gm.fit(self.data, self.ngauss, min_covar=1.0e-6)
+        gm.fit(self.fdata, self.ngauss, min_covar=1.0e-6)
 
         self.prior = gm
 
@@ -68,7 +76,7 @@ class PriorFitter(object):
 
         r=p.sample(nrand)
 
-        h=biggles.make_histc(self.data, nbin=100, ylog=ylog, norm=1)
+        h=biggles.make_histc(self.fdata, nbin=100, ylog=ylog, norm=1)
         hr=biggles.make_histc(r, nbin=100, ylog=ylog, color='red', norm=1)
 
         h.label='data'
@@ -93,22 +101,41 @@ class PriorFitter(object):
 
     def read_data(self):
         data=files.read_collated(self.run)
-
-        g = numpy.sqrt(data[self.field][:,2]**2 + data[self.field][:,3]**2)
-        w,=numpy.where((data['flags']==0) & (g < 0.99) )
-        print("kept %d/%d with g < 0.99" % (w.size, data.size))
-
-        data=data[w]
-
         fdata = data[self.field][:,self.field_id]
 
-        self.data = fdata
+        g = numpy.sqrt(data[self.field][:,2]**2 + data[self.field][:,3]**2)
+
+        tmplogic = (data['flags']==0)
+        wtmp,=numpy.where(tmplogic)
+        print("kept %d/%d with g < 0.99" % (wtmp.size, data.size))
+        logic = tmplogic
+
+
+        tmplogic = (data['flags']==0)
+        wtmp,=numpy.where(tmplogic)
+        print("kept %d/%d with g < 0.99" % (wtmp.size, data.size))
+        logic = logic & tmplogic
+
+        if self.drange is not None:
+            from esutil.numpy_util import between
+            dr=self.drange
+            tmplogic = between(fdata, dr[0], dr[1])
+            wtmp,=numpy.where(tmplogic)
+            print("kept %d/%d with in range[%g,%g]" % (wtmp.size, data.size,dr[0],dr[1]))
+
+            logic = logic & tmplogic
+
+        w,=numpy.where(logic)
+        print("kept %d/%d total" % (w.size, data.size))
+
+        self.fdata = fdata[w]
 
 def main():
     args = parser.parse_args()
 
     fitter=PriorFitter(args.run, args.field, args.field_id,
-                       args.ngauss, args.name)
+                       args.ngauss, args.name,
+                       drange=args.drange)
     fitter.go()
 
 main()
