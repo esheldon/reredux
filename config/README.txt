@@ -16,6 +16,35 @@ v3deep.yaml
     s2: 0.00045 +/- 0.00017
     delta g/g = -0.0005 +/- 0.0024
 
+# runs with gaussians
+- max-g-v3d01
+    - max like run to get priors
+- mcal-g-v3d01
+    - deep data
+- mcal-g-v3s01
+    - shallow data
+
+
+
+- metanoise thoughts
+
+    - downfall of metanoise was that there was partly net shear
+
+        - for multiplicative, if we had rotated half the images/psfs by 90 it
+          might have worked.
+
+        - for additive, would want to measure mean Rpsf not Rpsf*epsf.  Then
+          record <epsf> in output file and use when doing final shear
+          - which epsf?  probably that of the original
+
+        - same program I think
+            - do metacal on image
+            - make N random realizations where N is factor of 2, half of them
+              rotated by 90, and noise is sqrt(N) times the original noise
+            - pack the N observations into ObsLists and fit simultaneously
+
+        - should only need to do this on a subset, say 100,000
+
 great3reredux v1
 -----------------
 
