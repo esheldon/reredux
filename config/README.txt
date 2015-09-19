@@ -26,6 +26,12 @@ v3deep.yaml
     s1: 0.0800 +/- 0.0002   s2: 0.0004 +/- 0.0002
     delga t/g = -0.00059 +/- 0.00232
 
+v04 in my directory
+-------------------
+can use priors from v3 for now
+
+- mcal-v4s01
+    - shallow data
 
 
 - metanoise thoughts

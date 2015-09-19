@@ -27,6 +27,27 @@ def get_meds_file(version, fnum, deep=False):
     """
     d = get_data_dir(version, deep=deep)
 
+    fname = '%s_meds%06d.fits.fz' % (version,fnum)
+
+    return os.path.join(d, fname)
+
+def get_psf_file(version, fnum, deep=False):
+    """
+    the psf file
+    """
+    d = get_data_dir(version, deep=deep)
+
+    fname = '%s_psf%06d.fits' % (version,fnum)
+
+    return os.path.join(d, fname)
+
+'''
+def get_meds_file(version, fnum, deep=False):
+    """
+    the meds file
+    """
+    d = get_data_dir(version, deep=deep)
+
     fname = 'meds%03d.fits.fz' % fnum
 
     return os.path.join(d, fname)
@@ -40,6 +61,7 @@ def get_psf_file(version, fnum, deep=False):
     fname = 'psfs%03d.fits' % fnum
 
     return os.path.join(d, fname)
+'''
 
 #
 # run base dir
@@ -71,7 +93,7 @@ def get_output_file(run, fnum, beg, end):
     """
 
     dir=get_output_dir(run)
-    fname = '%s-%03d-%06d-%06d.fits' % (run, fnum, beg, end)
+    fname = '%s-%06d-%06d-%06d.fits' % (run, fnum, beg, end)
     return os.path.join(dir, fname)
 
 def get_log_file(run, fnum, beg, end):
@@ -210,7 +232,7 @@ def get_lsf_file(run, fnum, beg, end, missing=False):
     """
 
     dir=get_lsf_dir(run)
-    fname = '%s-%03d-%06d-%06d' % (run, fnum, beg, end)
+    fname = '%s-%06d-%06d-%06d' % (run, fnum, beg, end)
 
     if missing:
         fname = '%s-missing' % fname

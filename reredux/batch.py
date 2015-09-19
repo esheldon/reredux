@@ -81,7 +81,7 @@ class BatchMaker(dict):
             fobj.write(text)
 
     def get_job_name(self, fnum, beg, end):
-        return '%s-%03d-%06d-%06d' % (self['run'], fnum, beg, end)
+        return '%s-%06d-%06d-%06d' % (self['run'], fnum, beg, end)
 
     def get_batch_file(self, run, fnum, beg, end, missing=False):
         raise NotImplementedError("implement in child class")
