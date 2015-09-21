@@ -53,7 +53,8 @@ model_pars:
 
     T:
       type: "gmixnd"
-      file: "${REREDUX_OUTPUTS_DIR}/max-v3d01/fitprior/max-v3d01-fitprior-log_T.fits"
+      #file: "${REREDUX_OUTPUTS_DIR}/max-v3d01/fitprior/max-v3d01-fitprior-log_T.fits"
+      file: "${REREDUX_OUTPUTS_DIR}/max-v04d01/fitprior/max-v04d01-fitprior-log_T.fits"
       # 20% broader than fit prior (1.44=1.2**2)
       cov_factor: 1.44
 

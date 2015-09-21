@@ -30,7 +30,11 @@ v04 in my directory
 -------------------
 can use priors from v3 for now
 
-- mcal-v4s01
+- max-v04d01
+    - for prior
+- mcal-v04d01
+    running
+- mcal-v04s01
     - shallow data
 
 
