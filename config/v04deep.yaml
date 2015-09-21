@@ -1,0 +1,5 @@
+version: "v04deep"
+deep: True
+
+nfiles: 100
+nperfile: 1000
