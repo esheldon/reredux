@@ -60,8 +60,10 @@ class BatchMaker(dict):
         self['job_name'] = self.get_job_name(fnum, beg, end)
 
         vers=self.reredux_conf['version']
-        self['meds_file'] = files.get_meds_file(vers, fnum, deep=self['deep'])
-        self['psf_file'] = files.get_psf_file(vers, fnum, deep=self['deep'])
+        #self['meds_file'] = files.get_meds_file(vers, fnum, deep=self['deep'])
+        #self['psf_file'] = files.get_psf_file(vers, fnum, deep=self['deep'])
+        self['meds_file'] = files.get_meds_file(vers, fnum)
+        self['psf_file'] = files.get_psf_file(vers, fnum)
 
         self['config_file'] = files.get_config_file(self['run'])
         self['output_file'] = files.get_output_file(self['run'], fnum, beg, end)

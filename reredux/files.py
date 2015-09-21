@@ -8,6 +8,37 @@ def get_reredux_basedir():
     """
     return os.environ['REREDUX_DATA_DIR']
 
+def get_data_dir(version):
+    """
+    directory holding images
+    """
+    basedir = get_reredux_basedir()
+
+    subdirs='work/data'
+
+    return os.path.join(basedir, version, subdirs)
+
+def get_meds_file(version, fnum):
+    """
+    the meds file
+    """
+    d = get_data_dir(version)
+
+    fname = '%s_meds%06d.fits.fz' % (version,fnum)
+
+    return os.path.join(d, fname)
+
+def get_psf_file(version, fnum):
+    """
+    the psf file
+    """
+    d = get_data_dir(version)
+
+    fname = '%s_psf%06d.fits' % (version,fnum)
+
+    return os.path.join(d, fname)
+
+'''
 def get_data_dir(version, deep=False):
     """
     directory holding images
@@ -21,27 +52,7 @@ def get_data_dir(version, deep=False):
 
     return os.path.join(basedir, version, subdirs)
 
-def get_meds_file(version, fnum, deep=False):
-    """
-    the meds file
-    """
-    d = get_data_dir(version, deep=deep)
 
-    fname = '%s_meds%06d.fits.fz' % (version,fnum)
-
-    return os.path.join(d, fname)
-
-def get_psf_file(version, fnum, deep=False):
-    """
-    the psf file
-    """
-    d = get_data_dir(version, deep=deep)
-
-    fname = '%s_psf%06d.fits' % (version,fnum)
-
-    return os.path.join(d, fname)
-
-'''
 def get_meds_file(version, fnum, deep=False):
     """
     the meds file
