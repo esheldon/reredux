@@ -1,0 +1,5 @@
+version: "v05"
+deep: False
+
+nfiles: 20000
+nperfile: 1000
