@@ -52,7 +52,7 @@ v05deep larger deep sim, 1,000,000
     - for priors
 - mcal-v05d01
     - priors from max-v5d01
-
+    - 10,000 jobs each over an hour
 
 great3reredux v1
 -----------------
