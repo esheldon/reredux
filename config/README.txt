@@ -37,25 +37,21 @@ can use priors from v3 for now
 - mcal-v04s01
     - shallow data
 
+v05 larger sim, 20,000,000
+--------------------------
+- using deep run mcal-v04d01
+    s1: 0.08007 +/- 0.00013   s2: -0.00006 +/- 0.00010
+    delta g/g 0.0008 +/- 0.0017
 
-- metanoise thoughts
+    errors larger than I anticipated, may have to do with proper
+    bootstrapping of the deep data. If I don't bootstrap the
+    deep data as well, the frac error is 0.0007
 
-    - downfall of metanoise was that there was partly net shear
+v05deep larger deep sim, 1,000,000
+- max-v05d01
+    - for priors
 
-        - for multiplicative, if we had rotated half the images/psfs by 90 it
-          might have worked.
 
-        - for additive, would want to measure mean Rpsf not Rpsf*epsf.  Then
-          record <epsf> in output file and use when doing final shear
-          - which epsf?  probably that of the original
-
-        - same program I think
-            - do metacal on image
-            - make N random realizations where N is factor of 2, half of them
-              rotated by 90, and noise is sqrt(N) times the original noise
-            - pack the N observations into ObsLists and fit simultaneously
-
-        - should only need to do this on a subset, say 100,000
 
 great3reredux v1
 -----------------

@@ -3,4 +3,34 @@
 usage: reredux-average run
 """
 
+import numpy
+from argparse import ArgumentParser
+import reredux
+import ngmix
 
+parser=ArgumentParser()
+
+parser.add_argument('run',help='run identifier')
+parser.add_argument('corr_run',help='run identifier for corrections')
+parser.add_argument('nboot',type=int,help='number of bootstrap samples')
+
+def average_shear(data, corrdata, nboot):
+    res=ngmix.metacal.bootstrap_shear(data['exp_mcal_g'],
+                                      data['exp_mcal_gpsf'],
+                                      corrdata['exp_mcal_R'],
+                                      corrdata['exp_mcal_Rpsf'],nboot,
+                                      verbose=True)
+
+def main():
+    args = parser.parse_args()
+
+    data=reredux.read_collated(args.run,
+                               columns=['flags','exp_mgal_g','exp_mgal_gpsf'])
+    corrdata=reredux.read_collated(args.corr_run,
+                                   columns=['flags','exp_mgal_R','exp_mgal_Rpsf'])
+
+    w,=numpy.where(data['flags']==0)
+    wc,=numpy.where(corrdata['flags']==0)
+
+    data=data[w]
+    corrdata=corrdata[wc]

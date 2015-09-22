@@ -107,11 +107,10 @@ class PriorFitter(object):
 
         tmplogic = (data['flags']==0)
         wtmp,=numpy.where(tmplogic)
-        print("kept %d/%d with g < 0.99" % (wtmp.size, data.size))
+        print("kept %d/%d with flags == 0" % (wtmp.size, data.size))
         logic = tmplogic
 
-
-        tmplogic = (data['flags']==0)
+        tmplogic = (g < 0.99)
         wtmp,=numpy.where(tmplogic)
         print("kept %d/%d with g < 0.99" % (wtmp.size, data.size))
         logic = logic & tmplogic
