@@ -50,7 +50,8 @@ v05 larger sim, 20,000,000
 v05deep larger deep sim, 1,000,000
 - max-v05d01
     - for priors
-
+- mcal-v05d01
+    - priors from max-v5d01
 
 
 great3reredux v1
