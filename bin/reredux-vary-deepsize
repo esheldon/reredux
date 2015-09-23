@@ -5,6 +5,7 @@ usage: reredux-vary-deepsize run
 from __future__ import print_function
 import os
 import numpy
+from numpy import dot, linalg
 from argparse import ArgumentParser
 import reredux
 import ngmix
@@ -16,10 +17,12 @@ parser.add_argument('run',help='run identifier')
 parser.add_argument('corr_run',help='run identifier for corrections')
 parser.add_argument('deepsizes',help='csv list of sizes of deep subsets')
 
+parser.add_argument('--nboot',type=int,help='use bootstrapping instead of independent samples')
+
 
 def print_shear(deepsize, shear, shear_err, strue):
     mess=[str(deepsize)]
-    s='s1: %.5f +/- %.5f   s2: %.5f +/- %.5f'
+    s='s1: %.6f +/- %.6f   s2: %.6f +/- %.6f'
     s = s % (shear[0],
              shear_err[0],
              shear[1],
@@ -49,30 +52,61 @@ def average_shear(model, data, corrdata):
     return res
 
 
-def average_shear_sub(model, data, corrdata, deepsize):
+def average_shear_sub(model, g_mean, gpsf_mean, corrdata, deepsize):
+
+    R=corrdata['%s_mcal_R' % model]
+    Rpsf=corrdata['%s_mcal_Rpsf' % model]
 
     nchunk = corrdata.size/deepsize
 
-    rlist=[]
+    shears=numpy.zeros( (nchunk, 2))
     for i in xrange(nchunk):
         beg=i*deepsize
         end=(i+1)*deepsize
-
         print("%d  %d:%d" % (deepsize,beg,end))
 
-        res = average_shear(model, data, corrdata[beg:end])
-        rlist.append(res)
+        R_mean = R[beg:end,:,:].mean(axis=0)
+        Rpsf_mean = Rpsf[beg:end,:].mean(axis=0)
 
+        psf_corr = Rpsf_mean*gpsf_mean
 
-    shears=numpy.zeros( (nchunk, 2))
+        Rinv = linalg.inv(R_mean)
+        shear = dot(Rinv, g_mean - psf_corr)
 
-    shears[:,0] = [r['shear'][0] for r in rlist]
-    shears[:,1] = [r['shear'][1] for r in rlist]
+        shears[i,:] = shear
 
     shear=shears.mean(axis=0)
     shear_err = shears.std(axis=0)/numpy.sqrt(nchunk)
 
     return shear, shear_err
+
+def average_shear_sub_boot(model, g_mean, gpsf_mean, corrdata, deepsize, nboot):
+
+    R=corrdata['%s_mcal_R' % model]
+    Rpsf=corrdata['%s_mcal_Rpsf' % model]
+    nR = R.shape[0]
+
+    shears=numpy.zeros( (nboot, 2))
+    for i in xrange(nboot):
+        print("%d  %d/%d" % (deepsize,i+1,nboot))
+
+        rind = numpy.random.randint(0, nR, deepsize)
+
+        R_mean = R[rind,:,:].mean(axis=0)
+        Rpsf_mean = Rpsf[rind,:].mean(axis=0)
+
+        psf_corr = Rpsf_mean*gpsf_mean
+
+        Rinv = linalg.inv(R_mean)
+        shear = dot(Rinv, g_mean - psf_corr)
+
+        shears[i,:] = shear
+
+    shear=shears.mean(axis=0)
+    shear_err = shears.std(axis=0)/numpy.sqrt(nboot)
+
+    return shear, shear_err
+
 
 def main():
     args = parser.parse_args()
@@ -103,10 +137,27 @@ def main():
     data=data[w]
     corrdata=corrdata[wc]
 
+    g = data['%s_mcal_g' % model]
+    gpsf = data['%s_mcal_gpsf' % model]
+    g_mean = g.mean(axis=0)
+    gpsf_mean = gpsf.mean(axis=0)
+
     slist=[]
     elist=[]
     for deepsize in dlist:
-        shear, shear_err=average_shear_sub(model, data, corrdata, deepsize)
+        if args.nboot is not None:
+            shear, shear_err=average_shear_sub_boot(model,
+                                                    g_mean,
+                                                    gpsf_mean,
+                                                    corrdata,
+                                                    deepsize,
+                                                    args.nboot)
+        else:
+            shear, shear_err=average_shear_sub(model,
+                                               g_mean,
+                                               gpsf_mean,
+                                               corrdata,
+                                               deepsize)
 
         print_shear(deepsize, shear, shear_err, sconf['shear_true'])
 
