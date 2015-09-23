@@ -53,6 +53,18 @@ v05deep larger deep sim, 1,000,000
 - mcal-v05d01
     - priors from max-v5d01
     - 10,000 jobs each over an hour
+    * jobs needed to be restarted
+- mcal-v05s02
+    - priors from max-v5d01
+    * jobs needed to be restarted
+
+    s1: 0.07996 +/- 0.00007   s2: -0.00017 +/- 0.00007
+    delta g/g = -0.0005 +/- 0.0008
+
+    s1: 0.07996 +/- 0.00008   s2: -0.00017 +/- 0.00006
+    frac1: -0.00048 +/- 0.00096
+
+
 
 great3reredux v1
 -----------------

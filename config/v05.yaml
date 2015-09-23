@@ -3,3 +3,5 @@ deep: False
 
 nfiles: 20000
 nperfile: 1000
+
+shear_true: [0.08, 0.00]

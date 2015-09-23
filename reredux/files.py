@@ -182,13 +182,13 @@ def get_averaged_dir(run):
     basedir = get_rundir(run)
     return os.path.join(basedir, 'averaged')
 
-def get_averaged_file(run, beg, end):
+def get_averaged_file(run, corr_run):
     """
     location of output file
     """
 
     dir=get_averaged_dir(run)
-    fname = '%s-avg.fits' % run
+    fname = '%s-%s-avg.fits' % (run, corr_run)
     return os.path.join(dir, fname)
 
 #
