@@ -1,0 +1,90 @@
+# shallow data
+reredux_config: "v05"
+
+fitter_type: "metacal-ngmix-boot"
+imageio_type: "meds-simp-sim"
+
+fit_me_galaxy: True
+fit_coadd_galaxy: False
+
+model_nbrs: False
+psf_ind_field: 'psf_id'
+
+region: "weight"
+
+min_weight: 1.0e-4
+
+print_params: True
+
+# find the center and reset the jacobians
+pre_find_center: True
+
+do_shear: False
+
+psf_pars:
+  model: 'em3'
+  ntry: 20
+  maxiter: 5000
+  tol: 5.0e-6
+
+max_pars:
+  method: 'lm'
+  ntry: 2
+  
+  lm_pars:
+    maxfev: 4000
+
+replace_cov: False
+
+round_pars:
+  fitter_type: 'max'
+
+
+metacal_pars:
+  step: 0.01
+
+use_logpars: True
+
+model_pars:
+  exp:
+    g:
+      type: "ba"
+      sigma: 0.3
+
+    T:
+      type: "gmixnd"
+
+      # ngauss=20 and logT range [-7,2]
+      file: "${REREDUX_OUTPUTS_DIR}/max-v05d01/fitprior/max-v05d01-fitprior-log_T.fits"
+
+      # 20% broader than fit prior (1.44=1.2**2)
+      cov_factor: 1.44
+
+    counts:
+      type: "TwoSidedErf"
+      pars: [-1.0, 1.0, 4.0, 1.0]
+      repeat: True
+
+    cen:
+      type: "dgauss"
+      width: 0.27
+
+# more than double the time
+time_per: 0.9
+
+# all
+nper: 1000
+
+# checkpoint times in minutes, needed for condor in case we pass a batch system
+# limit such as in the condor scavenge.
+# 0 means after the first object
+
+# checkpoints for lsf
+checkpoints: [0,
+              30,60,
+              90,120, 
+              150,180,
+              210,240,
+              270,300,
+              330,360,
+              390,420]
