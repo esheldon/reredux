@@ -1,0 +1,122 @@
+#!/usr/bin/env python
+"""
+usage: reredux-vary-deepsize run
+"""
+from __future__ import print_function
+import os
+import numpy
+from argparse import ArgumentParser
+import reredux
+import ngmix
+import fitsio
+
+parser=ArgumentParser()
+
+parser.add_argument('run',help='run identifier')
+parser.add_argument('corr_run',help='run identifier for corrections')
+parser.add_argument('deepsizes',help='csv list of sizes of deep subsets')
+
+
+def print_shear(deepsize, shear, shear_err, strue):
+    mess=[str(deepsize)]
+    s='s1: %.5f +/- %.5f   s2: %.5f +/- %.5f'
+    s = s % (shear[0],
+             shear_err[0],
+             shear[1],
+             shear_err[1])
+
+    mess.append(s)
+    if strue[0] != 0.0:
+        s='frac1: %.2g +/- %.2g'
+        s=s % (shear[0]/strue[0]-1, shear_err[0]/strue[0])
+        mess.append(s)
+
+    if strue[1] != 0.0:
+        s='frac2: %.2g +/- %.2g'
+        s=s % (shear[1]/strue[1]-1, shear_err[1]/strue[1])
+        mess.append(s)
+
+    mess=' '.join(mess)
+    print(mess)
+
+
+def average_shear(model, data, corrdata):
+    res=ngmix.metacal.get_mean_shear(data['%s_mcal_g' % model],
+                                     data['%s_mcal_gpsf' % model],
+                                     corrdata['%s_mcal_R' % model],
+                                     corrdata['%s_mcal_Rpsf' % model])
+
+    return res
+
+
+def average_shear_sub(model, data, corrdata, deepsize):
+
+    nchunk = corrdata.size/deepsize
+
+    rlist=[]
+    for i in xrange(nchunk):
+        beg=i*deepsize
+        end=(i+1)*deepsize
+
+        print("%d  %d:%d" % (deepsize,beg,end))
+
+        res = average_shear(model, data, corrdata[beg:end])
+        rlist.append(res)
+
+
+    shears=numpy.zeros( (nchunk, 2))
+
+    shears[:,0] = [r['shear'][0] for r in rlist]
+    shears[:,1] = [r['shear'][1] for r in rlist]
+
+    shear=shears.mean(axis=0)
+    shear_err = shears.std(axis=0)/numpy.sqrt(nchunk)
+
+    return shear, shear_err
+
+def main():
+    args = parser.parse_args()
+
+    dlist=[int(d) for d in args.deepsizes.split(',')]
+
+    conf=reredux.files.read_config(args.run)
+    sconf=reredux.files.read_config(conf['reredux_config'])
+
+    # assuming only one model was fit
+    model=conf['model_pars'].keys()[0]
+
+    columns=['flags',
+             '%s_mcal_g' % model,
+             '%s_mcal_gpsf' % model]
+    data=reredux.files.read_collated(args.run,
+                                     columns=columns)
+
+    columns=['flags',
+             '%s_mcal_R' % model,
+             '%s_mcal_Rpsf' % model]
+    corrdata=reredux.files.read_collated(args.corr_run,
+                                         columns=columns)
+
+    w,=numpy.where(data['flags']==0)
+    wc,=numpy.where(corrdata['flags']==0)
+
+    data=data[w]
+    corrdata=corrdata[wc]
+
+    slist=[]
+    elist=[]
+    for deepsize in dlist:
+        shear, shear_err=average_shear_sub(model, data, corrdata, deepsize)
+
+        print_shear(deepsize, shear, shear_err, sconf['shear_true'])
+
+        slist.append(shear)
+        elist.append(shear_err)
+
+    print('-'*70)
+    for i,deepsize in enumerate(dlist):
+        shear=slist[i]
+        shear_err=elist[i]
+        print_shear(deepsize, shear, shear_err, sconf['shear_true'])
+
+main()
