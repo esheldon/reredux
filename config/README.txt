@@ -60,13 +60,18 @@ v05deep larger deep sim, 1,000,000
     s1: 0.07996 +/- 0.00007   s2: -0.00017 +/- 0.00007
     delta g/g = -0.0005 +/- 0.0008
 
-    1000 bootstrap, but not sure that makes sense
+    1000 bootstrap, but not sure that makes sense; it might
+    since we are also bootstrapping the shallow.  Need to
+    think about this more
+
     s1: 0.07996 +/- 0.00007   s2: -0.00017 +/- 0.00006
     frac1: -0.00048 +/- 0.00087
 
     - looking at variance just from the deep set, as a function of deep data
       set size (each out of 1,000,000 set, so the 100,000 one only has 10
       examples)
+
+      10000 s1: 0.079966 +/- 0.000037   s2: -0.000163 +/- 0.000023 frac1: -0.00042 +/- 0.00046
 
     # variances are from deep data alone
     # 100 bootstraps
