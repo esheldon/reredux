@@ -3,6 +3,9 @@ import os
 import numpy
 from . import files
 
+# Gets added to calculated walltime
+BASE_WALLTIME=2.0
+
 def get_splits(ntot, nper):
     """
     get split ranges, where the range is inclusive, not
@@ -102,7 +105,7 @@ class BatchMaker(dict):
         time_hours = time_seconds / 3600.0
 
         # always add an extra hour
-        time_hours_supp = time_hours + 1.0
+        time_hours_supp = time_hours + BASE_WALLTIME
 
         hours_round = int(round(time_hours_supp))
 
