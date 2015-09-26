@@ -98,6 +98,22 @@ v05deep larger deep sim, 1,000,000
     90000 s1: 0.079964 +/- 0.000004   s2: -0.000165 +/- 0.000003 frac1: -0.00045 +/- 5.6e-05
     100000 s1: 0.079969 +/- 0.000004   s2: -0.000166 +/- 0.000003 frac1: -0.00039 +/- 5.2e-05
 
+
+- mcal-v05bs01
+    s1: 0.07988 +/- 0.00005   s2: -0.00004 +/- 0.00004
+    frac1: -0.0016 +/- 0.00063
+
+    wtf? Maybe the deep sim was different? I don't think so,
+    at least egret itself is unchanged
+
+    contribution from deep fields to error is about 
+    0.000037 in shear
+    0.00046 in fracdiff
+
+- look for outliers in any parameters
+    - c1,c2,logT,logF
+    - R,Rpsf
+
 great3reredux v1
 -----------------
 

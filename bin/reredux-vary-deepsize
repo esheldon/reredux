@@ -30,12 +30,12 @@ def print_shear(deepsize, shear, shear_err, strue):
 
     mess.append(s)
     if strue[0] != 0.0:
-        s='frac1: %.2g +/- %.2g'
+        s='frac1: %.3g +/- %.3g'
         s=s % (shear[0]/strue[0]-1, shear_err[0]/strue[0])
         mess.append(s)
 
     if strue[1] != 0.0:
-        s='frac2: %.2g +/- %.2g'
+        s='frac2: %.3g +/- %.3g'
         s=s % (shear[1]/strue[1]-1, shear_err[1]/strue[1])
         mess.append(s)
 
