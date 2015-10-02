@@ -251,4 +251,31 @@ def get_lsf_file(run, fnum, beg, end, missing=False):
     fname = '%s.lsf' % fname
     return os.path.join(dir, fname)
 
+#
+# slr batch system
+#
+
+def get_slr_dir(run):
+    """
+    output files
+    """
+
+    basedir = get_rundir(run)
+    return os.path.join(basedir, 'slr')
+
+
+def get_slr_file(run, fnum, beg, end, missing=False):
+    """
+    location of output file
+    """
+
+    dir=get_slr_dir(run)
+    fname = '%s-%06d-%06d-%06d' % (run, fnum, beg, end)
+
+    if missing:
+        fname = '%s-missing' % fname
+
+    fname = '%s.slr' % fname
+    return os.path.join(dir, fname)
+
 

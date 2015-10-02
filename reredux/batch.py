@@ -155,7 +155,77 @@ class LSFMaker(BatchMaker):
     def get_text(self):
         return _lsf_template % self
 
+class SLRMaker(BatchMaker):
+    def get_batch_dir(self):
+        return files.get_slr_dir(self['run'])
 
+    def get_batch_file(self, fnum, beg, end, missing=False):
+        return files.get_slr_file(self['run'], fnum, beg, end, missing=missing)
+
+    def get_text(self):
+        return _slr_template % self
+
+
+
+
+_slr_template="""#!/bin/bash
+#SBATCH -p shared
+#SBATCH -J %(job_name)s
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --mem=200M
+#SBATCH -o %(job_name)s.out
+#SBATCH -t %(walltime)s
+#SBATCH --export=ALL
+#SBATCH -A bnl100
+
+echo "working on host: $(hostname)"
+
+# set up files
+config_file=%(config_file)s
+psf_file=%(psf_file)s
+meds_file=%(meds_file)s
+
+output_file=%(output_file)s
+log_file=%(log_file)s
+
+beg=%(beg)s
+end=%(end)s
+
+# A temporary scratch directory is automatically provided.
+# Will write a local log file there and move it after the ngmix script
+# exits
+
+export TMPDIR=/scratch/$USER/$SLURM_JOB_ID
+echo "cd $TMPDIR"
+cd $TMPDIR
+
+tmplog=$(basename $log_file)
+
+python -u $(which ngmixit)         \\
+        --psf-file=${psf_file}     \\
+        --fof-range $beg,$end      \\
+        ${config_file}             \\
+        ${output_file}             \\
+        ${meds_file} &> ${tmplog}
+
+status=$?
+
+echo "moving log file ${tmplog} -> ${log_file}" >> ${tmplog}
+
+# errors go to the jobs stderr
+mv -fv "${tmplog}" "${log_file}" 1>&2
+status2=$?
+
+if [[ $status2 != "0" ]]; then
+    # this error message will go to main error file
+    echo "error ${status2} moving log to: ${log_file}" 1>&2
+
+    status=$status2
+fi
+
+exit $status
+"""
 
 
 _lsf_template="""#!/bin/bash
@@ -214,6 +284,6 @@ rm -rfv ${tmpdir}
 exit $status
 """
 
-_batch_systems=['lsf']
+_batch_systems=['lsf','slr']
 
 

@@ -16,10 +16,13 @@ def main():
     args = parser.parse_args()
 
     if args.batch_system=='lsf':
-        cls = reredux.batch.LSFMaker(args.run, missing=args.missing)
+        cls = reredux.batch.LSFMaker
+    elif args.batch_system=='slr':
+        cls = reredux.batch.SLRMaker
     else:
         raise ValueError("bad batch system: '%s'" % args.batch_system)
 
-    cls.write_scripts()
+    maker = cls(args.run, missing=args.missing)
+    maker.write_scripts()
 
 main()
