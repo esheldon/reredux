@@ -109,10 +109,7 @@ class BatchMaker(dict):
 
         hours_round = int(round(time_hours_supp))
 
-        if time_hours < 10:
-            tstr = '0%d:00' % hours_round
-        else:
-            tstr = '%d:00' % hours_round
+        tstr = self._format_walltime(hours_round)
 
         self['walltime'] = tstr
 
@@ -155,6 +152,13 @@ class LSFMaker(BatchMaker):
     def get_text(self):
         return _lsf_template % self
 
+    def _format_walltime(self, hours):
+        if hours < 10:
+            tstr = '0%d:00' % hours
+        else:
+            tstr = '%d:00' % hours
+        return tstr
+
 class SLRMaker(BatchMaker):
     def get_batch_dir(self):
         return files.get_slr_dir(self['run'])
@@ -165,6 +169,13 @@ class SLRMaker(BatchMaker):
     def get_text(self):
         return _slr_template % self
 
+    def _format_walltime(self, hours):
+        if hours < 10:
+            tstr = '0%d:00:00' % hours
+        else:
+            tstr = '%d:00:00' % hours
+        return tstr
+
 
 
 
@@ -173,11 +184,14 @@ _slr_template="""#!/bin/bash
 #SBATCH -J %(job_name)s
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --mem=200M
+#SBATCH --mem=400M
 #SBATCH -o %(job_name)s.out
 #SBATCH -t %(walltime)s
 #SBATCH --export=ALL
 #SBATCH -A bnl100
+
+#. ~/.bashrc
+#. ~/nsim-setup.sh
 
 echo "working on host: $(hostname)"
 

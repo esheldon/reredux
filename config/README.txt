@@ -119,9 +119,14 @@ v05deep larger deep sim, 1,000,000
     0.00046 in fracdiff
 
 
-- look for outliers in any parameters
-    - c1,c2,logT,logF
-    - R,Rpsf
+- mcal-v06s01
+    - shear -0.08 
+
+    - combine with mcal-v05s02 and use g2 to estimate 
+    a point at zero shear (kind of fake).
+
+    m = -0.0011 +/- 0.0016
+    c = (-0.26 +/- 1.00) x 10^{-4}
 
 great3reredux v1
 -----------------
