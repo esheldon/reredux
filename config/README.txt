@@ -59,6 +59,7 @@ v05deep larger deep sim, 1,000,000
 
     s1: 0.07996 +/- 0.00007   s2: -0.00017 +/- 0.00007
     delta g/g = -0.0005 +/- 0.0008
+    7.99257069e-02
 
     1000 bootstrap, but not sure that makes sense; it might
     since we are also bootstrapping the shallow.  Need to
@@ -102,13 +103,21 @@ v05deep larger deep sim, 1,000,000
 - mcal-v05bs01
     s1: 0.07988 +/- 0.00005   s2: -0.00004 +/- 0.00004
     frac1: -0.0016 +/- 0.00063
+    7.98399143e-02
 
     wtf? Maybe the deep sim was different? I don't think so,
     at least egret itself is unchanged
 
+    - should always use a new deep field as well, the above are correlated.
+    Might make it worse but there it is.
+
+    - using deep field mcal-v06d
+        7.98399143e-02
+
     contribution from deep fields to error is about 
     0.000037 in shear
     0.00046 in fracdiff
+
 
 - look for outliers in any parameters
     - c1,c2,logT,logF
