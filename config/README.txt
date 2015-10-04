@@ -122,7 +122,8 @@ v05deep larger deep sim, 1,000,000
 - mcal-v06s01
     - shear -0.08 
 
-    - combine with mcal-v05s02 and use g2 to estimate 
+- full m-c
+    - combine mcal-v06s01 with mcal-v05s02 and use g2 to estimate 
     a point at zero shear (kind of fake).
 
     m = -0.0011 +/- 0.0016
