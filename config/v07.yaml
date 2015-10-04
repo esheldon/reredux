@@ -1,0 +1,7 @@
+version: "v07"
+deep: False
+
+nfiles: 5000
+nperfile: 4000
+
+shear_true: [ 0.04, 0.00]
