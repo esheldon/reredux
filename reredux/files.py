@@ -191,6 +191,17 @@ def get_averaged_file(run, corr_run):
     fname = '%s-%s-avg.fits' % (run, corr_run)
     return os.path.join(dir, fname)
 
+def read_averaged(run, corr_run, **kw):
+    """
+    read in the entire collated fits file
+    """
+    import fitsio
+
+    fname=get_averaged_file(run, corr_run)
+    print("reading:",fname)
+    return fitsio.read(fname, **kw)
+
+
 #
 # config files
 # this works for both run and reredux version configs

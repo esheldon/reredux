@@ -121,6 +121,21 @@ v05deep larger deep sim, 1,000,000
 
 - mcal-v06s01
     - shear -0.08 
+    - deep mcal-v05d01
+    s1: -0.07987 +/- 0.00008   s2: -0.00001 +/- 0.00007
+    frac1: -0.0016 +/- -0.00094
+
+
+- mcal-v07s01
+    - shear 0.04
+    s1: 0.03995 +/- 0.00006   s2: -0.00010 +/- 0.00006
+    frac1: -0.0012 +/- 0.0014
+
+- mcal-v08s01
+    - shear -0.04
+    - deep mcal-v05d01
+    s1: -0.03996 +/- 0.00006   s2: 0.00010 +/- 0.00006
+    frac1: -0.0011 +/- -0.0014
 
 - full m-c
     - combine mcal-v06s01 with mcal-v05s02 and use g2 to estimate 
