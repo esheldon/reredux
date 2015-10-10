@@ -138,11 +138,20 @@ v05deep larger deep sim, 1,000,000
     frac1: -0.0011 +/- -0.0014
 
 - full m-c
-    - combine mcal-v06s01 with mcal-v05s02 and use g2 to estimate 
-    a point at zero shear (kind of fake).
+    - deep mcal-v05d01
+    m: -1.061e-03 +/- 5.401e-04 c: 1.632e-05 +/- 3.187e-05
 
-    m = -0.0011 +/- 0.0016
-    c = (-0.26 +/- 1.00) x 10^{-4}
+    assuming etac is 1.12
+    Q = 
+        1.12*2000.0/sqrt(1.0**2 + 2*( (-1.061e-03/2.0e-3)**2 +
+                                      (1.632e-05/2.0e-4)**2 ) )
+       = 1784
+
+
+- mcal-v05s04, v06s04, v07s04, v08s04
+    - fix using abs(g)
+    - fix not interpolating twice
+
 
 great3reredux v1
 -----------------
