@@ -5,6 +5,7 @@ usage: reredux-average run
 from __future__ import print_function
 import os
 import numpy
+from numpy import median, arange, dot
 from argparse import ArgumentParser
 import reredux
 import ngmix
@@ -17,11 +18,19 @@ parser.add_argument('corr_run',help='run identifier for corrections')
 #parser.add_argument('model',help='model used for fitting')
 parser.add_argument('nboot',type=int,help='number of bootstrap samples')
 
-def print_shear(res, strue):
+def print_shear(res, strue, type='mean'):
+
+    print("shear type:",type)
+
+    if type=='mean':
+        shear=res['shear']
+    else:
+        shear=res['shear_med']
+
     mess='s1: %.5f +/- %.5f   s2: %.5f +/- %.5f'
-    mess = mess % (res['shear'][0],
+    mess = mess % (shear[0],
                    res['shear_err'][0],
-                   res['shear'][1],
+                   shear[1],
                    res['shear_err'][1])
     print(mess)
 
@@ -29,22 +38,43 @@ def print_shear(res, strue):
 
     if strue[0] != 0.0:
         s='frac1: %.2g +/- %.2g'
-        s=s % (res['shear'][0]/strue[0]-1, res['shear_err'][0]/strue[0])
+        s=s % (shear[0]/strue[0]-1, res['shear_err'][0]/strue[0])
         mess += s
     if strue[1] != 0.0:
         s='frac2: %.2g +/- %.2g'
-        s=s % (res['shear'][1]/strue[1]-1, res['shear_err'][1]/strue[1])
+        s=s % (shear[1]/strue[1]-1, res['shear_err'][1]/strue[1])
         mess += s
 
     print(mess)
 
+def get_median_shear(model, data):
+
+    g    = data['%s_mcal_g' % model]
+    gpsf = data['%s_mcal_gpsf' % model]
+    R    = data['%s_mcal_R' % model]
+    Rpsf = data['%s_mcal_Rpsf' % model]
+
+    mg = median(g, axis=0)
+    mR = median(R, axis=0)
+    mcorr = median(Rpsf*gpsf, axis=0)
+
+    Rinv = numpy.linalg.inv(mR)
+    shear = dot( Rinv, mg-mcorr )
+
+    return shear
+
 def average_shear(model, data, corrdata, nboot):
+
+    shear_med=get_median_shear(model, data)
+    print("shear_med:",shear_med)
+
     res=ngmix.metacal.bootstrap_shear(data['%s_mcal_g' % model],
                                       data['%s_mcal_gpsf' % model],
                                       corrdata['%s_mcal_R' % model],
                                       corrdata['%s_mcal_Rpsf' % model],nboot,
                                       verbose=True)
 
+    res['shear_med'] = shear_med
     return res
 
 
@@ -53,6 +83,8 @@ def get_struct():
         ('shear','f8',2),
         ('shear_err','f8',2),
         ('shear_cov','f8',(2,2)),
+
+        ('shear_med','f8',2),
 
         ('R','f8', (2,2) ),
         ('Rpsf','f8', 2),
@@ -75,6 +107,8 @@ def copy_to_struct(res):
     data['shear'][0] = res['shear']
     data['shear_err'][0] = res['shear_err']
     data['shear_cov'][0] = res['shear_cov']
+
+    data['shear_med'][0] = res['shear_med']
 
     data['R'][0] = res['R']
     data['Rpsf'][0] = res['Rpsf']
@@ -115,8 +149,11 @@ def main():
 
     columns=['flags',
              '%s_mcal_g' % model,
-             '%s_mcal_gpsf' % model]
+             '%s_mcal_gpsf' % model,
+             '%s_mcal_R' % model,
+             '%s_mcal_Rpsf' % model]
     data=reredux.files.read_collated(args.run,
+                                     #rows=arange(1000000),
                                      columns=columns)
 
     columns=['flags',
@@ -132,7 +169,9 @@ def main():
     corrdata=corrdata[wc]
 
     res=average_shear(model, data, corrdata, args.nboot)
+
     print_shear(res, sconf['shear_true'])
+    print_shear(res, sconf['shear_true'], type='median')
 
     write_averaged(res, args)
 
