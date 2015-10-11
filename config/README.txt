@@ -151,7 +151,14 @@ v05deep larger deep sim, 1,000,000
 - mcal-v05s04, v06s04, v07s04, v08s04
     - fix using abs(g)
     - fix not interpolating twice
+- mcal-v05d02
+    - deep run including above fixes
 
+    s1
+        m: -3.8e-04 +/- 4.8e-04
+        c:  3.0e-05 +/- 3.1e-05
+    s2
+       mean: -4.232e-05 +/- 2.979e-05
 
 great3reredux v1
 -----------------
