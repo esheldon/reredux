@@ -9,6 +9,47 @@ parser = ArgumentParser()
 parser.add_argument('run', help='run to use in fit')
 parser.add_argument('refrun',help='run used for correction')
 
+parser.add_argument('--show',action='store_true',help='show plot')
+parser.add_argument('--yrange', help="yrange of plot")
+
+parser.add_argument('--boot',action='store_true',help='bootstrap fits')
+parser.add_argument('--nboot',type=int,
+                    default=100,help='number of bootstraps')
+
+def doplot(data, fits, args):
+    import biggles
+
+    if args.yrange is not None:
+        yrange=[float(r) for r in args.yrange.split(',')]
+    else:
+        yrange=[-0.01,0.01]
+
+    tab=biggles.Table(1,2)
+    tab.aspect_ratio=0.5
+
+    diff = data['shear'] - data['shear_true']
+
+    plts=[]
+    for i in [0,1]:
+
+        x = data['shear_true'][:,i]
+        plt =biggles.plot(x,
+                          diff[:,i],
+                          #yerr=data['shear_err'][:,i],
+                          xlabel='shear%d true' % (i+1,),
+                          ylabel='shear%d diff' % (i+1,),
+                          yrange=yrange,
+                          visible=False)
+        yfit=fits['m'][i]*x + fits['c'][i]
+
+        c=biggles.Curve(x, yfit, color='red')
+        z=biggles.Curve(x, x*0, color='black')
+        plt.add(c,z)
+
+        tab[0,i] = plt
+
+    tab.show(width=1000, height=1000)
+
 def read_data(conf, run):
 
     model=conf['model_pars'].keys()[0]
@@ -58,7 +99,7 @@ def print_shear(ind, num, shear, shear_err):
 
 def get_averages(conf, data, refdata):
 
-    sconf=reredux.files.read_egret_config(conf['reredux_config'])
+    sconf=conf['sconf']
     shears = sconf['shear']['shears']
 
     model=conf['model_pars'].keys()[0]
@@ -96,10 +137,14 @@ def get_averages(conf, data, refdata):
         means['shear_err'][i] = shear_err
         means['shear_true'][i] = shear_true
 
-        if (i % 10) == 0:
+        if False and (i % 10) == 0:
             print_shear(ind, w.size, shear, shear_err)
 
     return means
+
+def print_m_c(sindex, m, merr, c, cerr):
+    fmt = '  s%d m: %.3e +/- %.3e c: %.3e +/- %.3e'
+    print(fmt % (sindex,m, merr, c, cerr))
 
 def fit_m_c(data):
     import fitting
@@ -110,7 +155,10 @@ def fit_m_c(data):
     sdiff = data['shear'] - data['shear_true']
     serr = data['shear_err']
 
-    fmt = 's%d m: %.3e +/- %.3e c: %.3e +/- %.3e'
+    m = numpy.zeros(2)
+    merr = numpy.zeros(2)
+    c = numpy.zeros(2)
+    cerr = numpy.zeros(2)
 
     fits=[]
     for i in [0,1]:
@@ -129,26 +177,66 @@ def fit_m_c(data):
             p=res['pars']
             perr=res['perr']
 
-            print(fmt % (i+1,p[0],perr[0],p[1],perr[1]))
+            print_m_c(i+1, p[0],perr[0],p[1],perr[1])
 
-            fitpars={'m':p[0],
-                     'merr':perr[0],
-                     'c':p[1],
-                     'cerr':perr[1]}
-            fits.append(fitpars)
+            m[i] = p[0]
+            merr[i] = perr[0]
+            c[i] = p[1]
+            cerr[i] = perr[1]
 
+    return {'m':m,
+            'merr':merr,
+            'c':c,
+            'cerr':cerr}
 
-    return fits
+def fit_m_c_boot(fits, conf, data, refdata, nboot):
+
+    nd=data.size
+    nr=refdata.size
+
+    mvals = numpy.zeros( (nboot,2) )
+    cvals = numpy.zeros( (nboot,2) )
+
+    for i in xrange(nboot):
+        print("bootstrap: %d/%d" % (i+1,nboot))
+
+        rind     = numpy.random.randint(0, nd, nd)
+        rind_ref = numpy.random.randint(0, nr, nr)
+
+        means = get_averages(conf, data[rind], refdata[rind_ref])
+        tfits=fit_m_c(means)
+
+        mvals[i] = tfits['m']
+        cvals[i] = tfits['c']
+
+    mmean = mvals.mean(axis=0)
+    cmean = cvals.mean(axis=0)
+    merr = mvals.std(axis=0)
+    cerr = cvals.std(axis=0)
+
+    print("bootstrapped")
+    for i in [0,1]:
+        print_m_c(i+1, fits['m'][i], merr[i], fits['c'][i], cerr[i])
 
 def main():
     args = parser.parse_args()
 
     conf=reredux.files.read_config(args.run)
+    sconf=reredux.files.read_egret_config(conf['reredux_config'])
+
+    conf['sconf'] = sconf
 
     data=read_data(conf, args.run)
     refdata=read_refdata(conf, args.refrun)
 
     means = get_averages(conf, data, refdata)
     fits=fit_m_c(means)
+
+    if args.boot:
+        boot_fits = fit_m_c_boot(fits, conf, data, refdata, args.nboot)
+
+
+    if args.show:
+        doplot(means, fits, args)
 
 main()
