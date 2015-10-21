@@ -4,6 +4,7 @@ import os
 import fitsio
 import reredux
 from reredux import files
+import esutil as eu
 
 from argparse import ArgumentParser
 
@@ -12,6 +13,7 @@ parser=ArgumentParser()
 parser.add_argument('run',help='run identifier')
 parser.add_argument('--allow-missing',action='store_true',
                     help='skip missing ones')
+parser.add_argument('--add-shear-index',action='store_true')
 
 def make_dir(collated_file):
     d=os.path.dirname(collated_file)
@@ -19,26 +21,44 @@ def make_dir(collated_file):
         print("making dir:",d)
         os.makedirs(d)
 
+def read_meds_data(version, fnum):
+    fname=files.get_meds_file(version, fnum)
+    if not os.path.exists(fname):
+        print("missing meds file:",fname)
+        return None
+    else:
+        return fitsio.read(fname, ext='object_data')
+
 def main():
     args = parser.parse_args()
 
     runconf = files.read_config(args.run)
-    reredux_conf = files.read_config(runconf['reredux_config'])
+
+    version=runconf['reredux_config']
+    reredux_conf = files.read_egret_config(version)
 
     collated_file=files.get_collated_file(args.run)
     make_dir(collated_file)
 
-    ntot = reredux_conf['nperfile']
+    #ntot = reredux_conf['nperfile']
+    ntot = reredux_conf['Ngals']
     npersplit = runconf['nper']
 
     beglist,endlist = reredux.batch.get_splits(ntot, npersplit)
 
-    nfiles = reredux_conf['nfiles']
+    #nfiles = reredux_conf['nfiles']
+    nfiles = reredux_conf['Nfiles']
 
     first=True
     with fitsio.FITS(collated_file,'rw',clobber=True) as fits:
         for fnum in xrange(nfiles):
             print("%d/%d" % (fnum+1, nfiles))
+
+            if args.add_shear_index:
+                mdata=read_meds_data(version, fnum)
+                if mdata is None:
+                    continue
+                shear_indices = mdata['shear_index']
 
             for beg,end in zip(beglist, endlist):
                 fname=files.get_output_file(args.run, fnum, beg, end)
@@ -53,6 +73,10 @@ def main():
                 
                 print("    ",fname)
                 data=fitsio.read(fname)
+
+                if args.add_shear_index:
+                    data = eu.numpy_util.add_fields(data, [('shear_index','i8')])
+                    data['shear_index'] = shear_indices[data['id']]
 
                 if first:
                     first=False
