@@ -30,8 +30,7 @@ class BatchMaker(dict):
         self['missing'] = missing
 
         self._load_configs()
-
-        self['deep'] = self.reredux_conf['deep']
+        self._set_global_seed()
 
         self._set_walltime()
         self._setup_splits()
@@ -42,7 +41,8 @@ class BatchMaker(dict):
         Write all scripts
         """
 
-        nfiles = self.reredux_conf['nfiles']
+        #nfiles = self.reredux_conf['nfiles']
+        nfiles = self.reredux_conf['Nfiles']
         self.njobs_written = 0
 
         for fnum in xrange(nfiles):
@@ -62,9 +62,7 @@ class BatchMaker(dict):
 
         self['job_name'] = self.get_job_name(fnum, beg, end)
 
-        vers=self.reredux_conf['version']
-        #self['meds_file'] = files.get_meds_file(vers, fnum, deep=self['deep'])
-        #self['psf_file'] = files.get_psf_file(vers, fnum, deep=self['deep'])
+        vers=self.runconf['reredux_config']
         self['meds_file'] = files.get_meds_file(vers, fnum)
         self['psf_file'] = files.get_psf_file(vers, fnum)
 
@@ -73,6 +71,8 @@ class BatchMaker(dict):
         self['log_file'] = files.get_log_file(self['run'], fnum, beg, end)
         self['beg'] = beg
         self['end'] = end
+
+        self['seed'] = numpy.random.randint(0, high=2**32-1)
 
         if self['missing'] and os.path.exists(self['output_file']):
             if os.path.exists(fname):
@@ -94,7 +94,13 @@ class BatchMaker(dict):
 
     def _load_configs(self):
         self.runconf = files.read_config(self['run'])
-        self.reredux_conf = files.read_config(self.runconf['reredux_config'])
+        self.reredux_conf = \
+                files.read_egret_config(self.runconf['reredux_config'])
+        #self.reredux_conf = files.read_config(self.runconf['reredux_config'])
+
+    def _set_global_seed(self):
+        global_seed = self.runconf['global_seed']
+        numpy.random.seed(global_seed)
 
     def _set_walltime(self):
 
@@ -124,7 +130,8 @@ class BatchMaker(dict):
         """
         we expect the same splits for each file
         """
-        ntot = self.reredux_conf['nperfile']
+        #ntot = self.reredux_conf['nperfile']
+        ntot = self.reredux_conf['Ngals']
         npersplit = self.runconf['nper']
 
         self.beglist, self.endlist = get_splits(ntot, npersplit)
@@ -206,6 +213,8 @@ log_file=%(log_file)s
 beg=%(beg)s
 end=%(end)s
 
+seed=%(seed)s
+
 # A temporary scratch directory is automatically provided.
 # Will write a local log file there and move it after the ngmix script
 # exits
@@ -217,6 +226,7 @@ cd $TMPDIR
 tmplog=$(basename $log_file)
 
 python -u $(which ngmixit)         \\
+        --seed ${seed}             \\
         --psf-file=${psf_file}     \\
         --fof-range $beg,$end      \\
         ${config_file}             \\
@@ -261,6 +271,8 @@ log_file=%(log_file)s
 beg=%(beg)s
 end=%(end)s
 
+seed=%(seed)s
+
 # we need to make the scratch directory
 tmpdir="/scratch/esheldon/${LSB_JOBID}"
 mkdir -p $tmpdir
@@ -269,6 +281,7 @@ cd $tmpdir
 tmplog=$(basename $log_file)
 
 python -u $(which ngmixit)         \\
+        --seed ${seed}             \\
         --psf-file=${psf_file}     \\
         --fof-range $beg,$end      \\
         ${config_file}             \\
