@@ -236,6 +236,38 @@ def read_config(name):
     return data
 
 #
+# egretsims config files
+#
+
+def get_egret_config_dir():
+    """
+    location of config files for egret sims
+    """
+    return os.environ['EGRET_CONFIG_DIR']
+
+def get_egret_config_file(version):
+    """
+    location of config file for egret sim
+    """
+    d=get_egret_config_dir()
+    name='%s.yaml' % version
+    return os.path.join(d, name)
+
+def read_egret_config(version):
+    """
+    location of config file for egret sim
+    """
+    import yaml
+    fname=get_egret_config_file(version)
+
+    print("reading config:",fname)
+    with open(fname) as fobj:
+        data = yaml.load(fobj)
+    
+    return data
+
+
+#
 # lsf batch system
 #
 
