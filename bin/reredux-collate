@@ -13,7 +13,6 @@ parser=ArgumentParser()
 parser.add_argument('run',help='run identifier')
 parser.add_argument('--allow-missing',action='store_true',
                     help='skip missing ones')
-parser.add_argument('--add-shear-index',action='store_true')
 
 def make_dir(collated_file):
     d=os.path.dirname(collated_file)
@@ -31,6 +30,7 @@ def read_meds_data(version, fnum):
 
 def main():
     args = parser.parse_args()
+    add_shear_index=True
 
     runconf = files.read_config(args.run)
 
@@ -54,7 +54,7 @@ def main():
         for fnum in xrange(nfiles):
             print("%d/%d" % (fnum+1, nfiles))
 
-            if args.add_shear_index:
+            if add_shear_index:
                 mdata=read_meds_data(version, fnum)
                 if mdata is None:
                     continue
@@ -74,7 +74,7 @@ def main():
                 print("    ",fname)
                 data=fitsio.read(fname)
 
-                if args.add_shear_index:
+                if add_shear_index:
                     data = eu.numpy_util.add_fields(data, [('shear_index','i8')])
                     data['shear_index'] = shear_indices[data['id']]
 
