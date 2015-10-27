@@ -170,7 +170,21 @@ v05deep larger deep sim, 1,000,000
         s2
              -3.2e-05 +/- 2.9e-05
 
+- mcal-v11s01
+    - 300 different shears.  Using v05d02 for ref run
 
+    No bootstrapping
+
+      s1 m: -1.326e-03 +/- 7.629e-04 c: 5.421e-05 +/- 2.672e-05
+      s2 m: -5.576e-04 +/- 7.328e-04 c: -2.195e-05 +/- 2.643e-05
+
+    With bootstrapping
+
+
+      s1 m: -1.326e-03 +/- 9.404e-04 c: 5.421e-05 +/- 2.402e-05
+      s2 m: -5.576e-04 +/- 9.009e-04 c: -2.195e-05 +/- 2.503e-05
+
+      mean m from 1 and 2 gives (0.9 +/- 0.9) x 10^{-3} 
 
 great3reredux v1
 -----------------
