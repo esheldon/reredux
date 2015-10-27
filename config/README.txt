@@ -185,6 +185,7 @@ v05deep larger deep sim, 1,000,000
       s2 m: -5.576e-04 +/- 9.009e-04 c: -2.195e-05 +/- 2.503e-05
 
       mean m from 1 and 2 gives (0.9 +/- 0.9) x 10^{-3} 
+      but not sure what the error should be, probably fairly correlated
 
 great3reredux v1
 -----------------
