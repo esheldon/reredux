@@ -2,7 +2,7 @@
 reredux_config: "v05deep"
 
 ngmix_githash: "cd54ac16ebfc304159b19b97f54cfc9d381cab80"
-reredux_githash: "af59b9906d0bfcb011652d871b303c0c69cec737"
+reredux_githash: "df9f6b21e2717b5f3fd332ee694e9a23d88056b9"
 ngmixer_githash: "7e415035799f912117c1bd2e6c5a8f79a6d7a228"
 
 global_seed: 6828
