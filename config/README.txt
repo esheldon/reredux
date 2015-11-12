@@ -187,6 +187,10 @@ v05deep larger deep sim, 1,000,000
       mean m from 1 and 2 gives (0.9 +/- 0.9) x 10^{-3} 
       but not sure what the error should be, probably fairly correlated
 
+- going to do a run with twice the noise
+- mcal-v05d03
+    - deep run with target_noise: 0.1754
+
 great3reredux v1
 -----------------
 
