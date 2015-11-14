@@ -190,6 +190,8 @@ v05deep larger deep sim, 1,000,000
 - going to do a run with twice the noise
 - mcal-v05d03
     - deep run with target_noise: 0.1754
+- mcal-v11s02
+    - also target noies 0.1754
 
 great3reredux v1
 -----------------
