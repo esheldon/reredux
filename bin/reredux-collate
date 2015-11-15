@@ -58,7 +58,11 @@ def main():
                 mdata=read_meds_data(version, fnum)
                 if mdata is None:
                     continue
-                shear_indices = mdata['shear_index']
+                if 'shear_index' not in mdata:
+                    print("    ** shear_index not found, not copying it **")
+                    add_shear_index=False
+                else:
+                    shear_indices = mdata['shear_index']
 
             for beg,end in zip(beglist, endlist):
                 fname=files.get_output_file(args.run, fnum, beg, end)
