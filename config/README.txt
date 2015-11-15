@@ -193,6 +193,9 @@ v05deep larger deep sim, 1,000,000
 - mcal-v11s02
     - also target noies 0.1754
 
+        s1 m: -2.284e-03 +/- 9.775e-04 c: 7.765e-05 +/- 3.420e-05
+        s2 m: -2.644e-03 +/- 9.818e-04 c: 2.936e-06 +/- 3.536e-05
+
 great3reredux v1
 -----------------
 
