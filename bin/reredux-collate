@@ -58,7 +58,7 @@ def main():
                 mdata=read_meds_data(version, fnum)
                 if mdata is None:
                     continue
-                if 'shear_index' not in mdata:
+                if 'shear_index' not in mdata.dtype.names:
                     print("    ** shear_index not found, not copying it **")
                     add_shear_index=False
                 else:
