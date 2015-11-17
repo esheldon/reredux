@@ -1,0 +1,76 @@
+# using regauss
+# shallow data
+# match at 10 is coincidence
+reredux_config: "v10"
+
+ngmix_githash: "daea921963bff1f1f0236e7a28213f2469eb0342"
+reredux_githash: ""
+ngmixer_githash: "0efe7755e9a7264ec9f8d3f672c9692a1751356f"
+
+global_seed: 30268
+
+fitter_type: "metacal-regauss-boot"
+imageio_type: "meds-simp-sim"
+
+fit_me_galaxy: True
+fit_coadd_galaxy: False
+
+model_nbrs: False
+psf_ind_field: 'psf_id'
+
+region: "weight"
+
+min_weight: 1.0e-4
+
+print_params: True
+
+# find the center and reset the jacobians
+pre_find_center: False
+
+do_shear: False
+
+psf_pars:
+  model: "gauss" # regauss always uses a gaussian!
+  Tguess: 4.0
+  ntry: 4
+
+regauss_pars:
+  Tguess: 8.0
+  ntry: 2
+  
+
+replace_cov: False
+
+round_pars:
+  fitter_type: 'max'
+
+
+metacal_pars:
+  step: 0.01
+
+use_logpars: True
+
+model_pars:
+  gauss: null
+
+# more than double the time
+#time_per: 1.2
+# on comet
+time_per: 0.8
+
+# all
+nper: 1000
+
+# checkpoint times in minutes, needed for condor in case we pass a batch system
+# limit such as in the condor scavenge.
+# 0 means after the first object
+
+# checkpoints for lsf
+checkpoints: [0,
+              30,60,
+              90,120, 
+              150,180,
+              210,240,
+              270,300,
+              330,360,
+              390,420]
