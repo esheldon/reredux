@@ -170,6 +170,12 @@ v05deep larger deep sim, 1,000,000
         s2
              -3.2e-05 +/- 2.9e-05
 
+- mcal-v10s01
+    - 300 different shears
+
+- mcal-v10s02
+    - regauss
+
 - mcal-v11s01
     - 300 different shears.  Using v05d02 for ref run
 
