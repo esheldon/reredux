@@ -4,8 +4,8 @@
 reredux_config: "v10"
 
 ngmix_githash: "daea921963bff1f1f0236e7a28213f2469eb0342"
-reredux_githash: ""
 ngmixer_githash: "0efe7755e9a7264ec9f8d3f672c9692a1751356f"
+reredux_githash: "f8005c27599774456d25edd176d699fa757932e0"
 
 global_seed: 30268
 
