@@ -147,6 +147,47 @@ def read_collated(run, **kw):
     return fitsio.read(fname, **kw)
 
 #
+# files holding fit data
+#
+
+def get_fit_dir(run):
+    """
+    files holding the fits
+    """
+
+    basedir = get_rundir(run)
+    return os.path.join(basedir, 'bias-fits')
+
+def get_fit_file(run, extra=None, ext='fits'):
+    """
+    files holding fits for bias
+    """
+
+    dir=get_fit_dir(run)
+    fname = '%s' % run
+    if extra is not None:
+        fname = '%s-%s' % (fname, extra)
+
+    fname = '%s.%s' % (fname, ext)
+    return os.path.join(dir, fname)
+
+def read_fit_file(run, extra=None):
+    """
+    files holding fits for bias
+    """
+    import fitsio
+
+    dir=get_fit_dir(run)
+    fname = '%s' % run
+    if extra is not None:
+        fname = '%s-%s.fits' % (fname, extra)
+
+    fname=os.path.join(dir, fname)
+    print("reading:",fname)
+    return fitsio.read(fname)
+
+
+#
 # priors
 #
 

@@ -3,6 +3,8 @@ from __future__ import print_function
 import numpy
 from argparse import ArgumentParser
 import reredux
+import fitsio
+import esutil as eu
 
 parser = ArgumentParser()
 
@@ -16,7 +18,10 @@ parser.add_argument('--boot',action='store_true',help='bootstrap fits')
 parser.add_argument('--nboot',type=int,
                     default=100,help='number of bootstraps')
 
-def doplot(data, fits, args):
+parser.add_argument('--fit-only',action='store_true',
+                    help='get the means from the written file')
+
+def doplot(args, data, fits):
     import biggles
 
     if args.yrange is not None:
@@ -40,15 +45,42 @@ def doplot(data, fits, args):
                           ylabel='shear%d diff' % (i+1,),
                           yrange=yrange,
                           visible=False)
-        yfit=fits['m'][i]*x + fits['c'][i]
+        yfit=fits['m'][0,i]*x + fits['c'][0,i]
 
         c=biggles.Curve(x, yfit, color='red')
         z=biggles.Curve(x, x*0, color='black')
         plt.add(c,z)
 
+        mstr='m%d: %.2g +/- %.2g' % (i+1,fits['m'][0,i],fits['merr'][0,i])
+        cstr='c%d: %.2g +/- %.2g' % (i+1,fits['c'][0,i],fits['cerr'][0,i])
+        mlab=biggles.PlotLabel(0.1,0.9,
+                               mstr,
+                               halign='left')
+        clab=biggles.PlotLabel(0.1,0.8,
+                               cstr,
+                               halign='left')
+
+        plt.add(mlab,clab)
+
         tab[0,i] = plt
 
-    tab.show(width=1000, height=1000)
+    fname=reredux.files.get_fit_file(args.run,
+                                     extra='%s-fit-m-c' % args.refrun,
+                                     ext='eps')
+    eu.ostools.makedirs_fromfile(fname)
+    print("writing:",fname)
+    tab.write_eps(fname)
+
+    if args.show:
+        tab.show(width=1000, height=1000)
+
+def write_fits(args, fits):
+    fname=reredux.files.get_fit_file(args.run, extra='%s-fit-m-c' % args.refrun)
+
+    eu.ostools.makedirs_fromfile(fname)
+    print("writing fit data to file:",fname)
+    fitsio.write(fname, fits, clobber=True)
+
 
 def read_data(conf, run):
 
@@ -90,6 +122,18 @@ def get_mean_struct(n):
     means = numpy.zeros(n, dtype=dt)
     return means
 
+def read_means(args):
+    return reredux.files.read_fit_file(args.run,
+                                       extra='%s-shear-means' % args.refrun)
+def write_means(args, means):
+    fname=reredux.files.get_fit_file(args.run,
+                                     extra='%s-shear-means' % args.refrun)
+    eu.ostools.makedirs_fromfile(fname)
+
+    print("writing:",fname)
+    fitsio.write(fname, means, clobber=True)
+
+
 def print_shear(ind, num, shear, shear_err):
     mess="  %d: %d  %g +/- %g  %g +/- %g"
     tup=(ind, num, shear[0],shear_err[0], shear[1],shear_err[1])
@@ -122,6 +166,7 @@ def get_averages(conf, data, refdata):
     means=get_mean_struct(nind)
 
     for i,ind in enumerate(uind):
+        print("shear index:",i)
 
         shear_true = shears[ind]
 
@@ -160,7 +205,10 @@ def fit_m_c(data):
     c = numpy.zeros(2)
     cerr = numpy.zeros(2)
 
-    fits=[]
+    fits=numpy.zeros(1, dtype=[('m','f8',2),
+                               ('merr','f8',2),
+                               ('c','f8',2),
+                               ('cerr','f8',2)])
     for i in [0,1]:
         w,=numpy.where(strue[:,i] != 0.0)
         if w.size == 0:
@@ -179,15 +227,12 @@ def fit_m_c(data):
 
             print_m_c(i+1, p[0],perr[0],p[1],perr[1])
 
-            m[i] = p[0]
-            merr[i] = perr[0]
-            c[i] = p[1]
-            cerr[i] = perr[1]
+            fits['m'][0,i] = p[0]
+            fits['merr'][0,i] = perr[0]
+            fits['c'][0,i] = p[1]
+            fits['cerr'][0,i] = perr[1]
 
-    return {'m':m,
-            'merr':merr,
-            'c':c,
-            'cerr':cerr}
+    return fits
 
 def fit_m_c_boot(fits, conf, data, refdata, nboot):
 
@@ -218,6 +263,12 @@ def fit_m_c_boot(fits, conf, data, refdata, nboot):
     for i in [0,1]:
         print_m_c(i+1, fits['m'][i], merr[i], fits['c'][i], cerr[i])
 
+    newfits = fits.copy()
+    newfits['merr'][0,:] = merr
+    newfits['cerr'][0,:] = cerr
+
+    return newfits
+
 def main():
     args = parser.parse_args()
 
@@ -226,17 +277,25 @@ def main():
 
     conf['sconf'] = sconf
 
-    data=read_data(conf, args.run)
-    refdata=read_refdata(conf, args.refrun)
 
-    means = get_averages(conf, data, refdata)
+    # if only doing the fit, and not bootstrapping
+    if args.fit_only and not args.boot:
+        means = read_means(args)
+    else:
+
+        data=read_data(conf, args.run)
+        refdata=read_refdata(conf, args.refrun)
+
+        means = get_averages(conf, data, refdata)
+        write_means(args, means)
+
     fits=fit_m_c(means)
 
     if args.boot:
-        boot_fits = fit_m_c_boot(fits, conf, data, refdata, args.nboot)
+        fits = fit_m_c_boot(fits, conf, data, refdata, args.nboot)
 
+    write_fits(args, fits)
 
-    if args.show:
-        doplot(means, fits, args)
+    doplot(args, means, fits)
 
 main()
