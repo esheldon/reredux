@@ -21,8 +21,41 @@ parser.add_argument('--nboot',type=int,
 parser.add_argument('--fit-only',action='store_true',
                     help='get the means from the written file')
 
+
+SIGMA2_MIN_CONSTANT_GROUND = 4.     # 2**2
+NORMALIZATION_CONSTANT_SPACE = 1.232
+NORMALIZATION_CONSTANT_GROUND = NORMALIZATION_CONSTANT_SPACE
+
+CFID = 2.e-4
+MFID = 2.e-3
+
+def calc_q(fits):
+
+    m1=fits['m'][0,0]
+    m2=fits['m'][0,1]
+    c1=fits['c'][0,0]
+    c2=fits['c'][0,1]
+
+    sigma2_min = SIGMA2_MIN_CONSTANT_GROUND 
+    norm = NORMALIZATION_CONSTANT_GROUND 
+
+    num = 2000.0 * norm
+    denom = numpy.sqrt(  (c1 / CFID)**2 
+                       + (c2 / CFID)**2
+                       + (m1 / MFID)**2
+                       + (m2 / MFID)**2
+                       + sigma2_min)
+
+    Q = num/denom
+    
+    print("  Q: %g" % Q)
+
+    return Q
+
 def doplot(args, data, fits):
     import biggles
+
+    Q=calc_q(fits)
 
     if args.yrange is not None:
         yrange=[float(r) for r in args.yrange.split(',')]
@@ -56,11 +89,17 @@ def doplot(args, data, fits):
         mlab=biggles.PlotLabel(0.1,0.9,
                                mstr,
                                halign='left')
-        clab=biggles.PlotLabel(0.1,0.8,
+        clab=biggles.PlotLabel(0.1,0.85,
                                cstr,
                                halign='left')
-
         plt.add(mlab,clab)
+        if i==0:
+            Qstr='Q: %d' % (int(Q),)
+            Qlab=biggles.PlotLabel(0.1,0.8,
+                                   Qstr,
+                                   halign='left')
+            plt.add(Qlab)
+
 
         tab[0,i] = plt
 
