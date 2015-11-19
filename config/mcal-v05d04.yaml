@@ -1,9 +1,9 @@
 # deep data
 reredux_config: "v05deep"
 
-ngmix_githash: ""
-reredux_githash: ""
-ngmixer_githash: ""
+ngmix_githash: "0ccb34aa021629f567a3b9c2ef295a1b62be94e8"
+reredux_githash: "1fd478b08cc18917bc1d06affa96bdb1c6780840"
+ngmixer_githash: "7eb10ea47ed825cc2bcc476b4f1c41e4c7971bb5"
 
 global_seed: 31724
 
