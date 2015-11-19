@@ -78,8 +78,7 @@ model_pars:
       type: "dgauss"
       width: 0.27
 
-# more than double the time
-time_per: 0.8
+time_per: 0.4
 
 # all
 nper: 1000
