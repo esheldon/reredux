@@ -49,7 +49,12 @@ v05 larger sim, 20,000,000
 
 v05deep larger deep sim, 1,000,000
 - max-v05d01
-    - for priors
+    - for priors on exp
+- max-v05d02
+    - for priors on gauss
+
+
+
 - mcal-v05d01
     - priors from max-v5d01
     - 10,000 jobs each over an hour
@@ -171,10 +176,14 @@ v05deep larger deep sim, 1,000,000
              -3.2e-05 +/- 2.9e-05
 
 - mcal-v10s01
-    - 300 different shears
+    - 300 different shears, exp
 
 - mcal-v10s02
     - regauss
+
+- mcal-v10s03
+    * gaussian fit
+
 
 - mcal-v11s01
     - 300 different shears.  Using v05d02 for ref run
