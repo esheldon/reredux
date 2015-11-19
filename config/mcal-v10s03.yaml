@@ -3,11 +3,11 @@
 # match at 10 is coincidence
 reredux_config: "v10"
 
-ngmix_githash: "38f7108a68919f77ae46631620ab7220e7e29c27"
-reredux_githash: "cce8cd41d66c3a943d95b7a4b965de704ca852eb"
-ngmixer_githash: "da8fa3b522fc4caeed6782b27644936b2974d15f"
+ngmix_githash: ""
+reredux_githash: ""
+ngmixer_githash: ""
 
-global_seed: 4269
+global_seed: 3187
 
 fitter_type: "metacal-ngmix-boot"
 imageio_type: "meds-simp-sim"
@@ -25,7 +25,7 @@ min_weight: 1.0e-4
 print_params: True
 
 # find the center and reset the jacobians
-pre_find_center: True
+pre_find_center: False
 
 do_shear: False
 
@@ -65,21 +65,20 @@ model_pars:
       # ngauss=20 and logT range [-7,2]
       file: "${REREDUX_OUTPUTS_DIR}/max-v05d02/fitprior/max-v05d02-fitprior-log_T.fits"
 
-      # 20% broader than fit prior (1.44=1.2**2)
-      cov_factor: 1.44
+      cov_factor: 1.1
 
     counts:
-      type: "TwoSidedErf"
-      pars: [-1.0, 1.0, 4.0, 1.0]
-      repeat: True
+      type: "gmixnd"
+
+      file: "${REREDUX_OUTPUTS_DIR}/max-v05d02/fitprior/max-v05d02-fitprior-log_F.fits"
+
+      cov_factor: 1.1
 
     cen:
       type: "dgauss"
       width: 0.27
 
 # more than double the time
-#time_per: 1.2
-# on comet
 time_per: 0.8
 
 # all
