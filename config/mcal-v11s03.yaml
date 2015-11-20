@@ -1,0 +1,99 @@
+# gauss
+# shallow data
+# match at 10 is coincidence
+reredux_config: "v11"
+
+ngmix_githash: "096f3aa4dbb326dc385380ebc49ff115b9e5f059"
+reredux_githash: "1fd478b08cc18917bc1d06affa96bdb1c6780840"
+ngmixer_githash: "7eb10ea47ed825cc2bcc476b4f1c41e4c7971bb5"
+
+global_seed: 29348
+
+fitter_type: "metacal-ngmix-boot"
+imageio_type: "meds-simp-sim"
+
+fit_me_galaxy: True
+fit_coadd_galaxy: False
+
+model_nbrs: False
+psf_ind_field: 'psf_id'
+
+region: "weight"
+
+min_weight: 1.0e-4
+
+print_params: True
+
+# find the center and reset the jacobians
+pre_find_center: True
+
+do_shear: False
+
+psf_pars:
+  model: 'em3'
+  ntry: 20
+  maxiter: 5000
+  tol: 5.0e-6
+
+max_pars:
+  method: 'lm'
+  ntry: 2
+  
+  lm_pars:
+    maxfev: 4000
+
+replace_cov: False
+
+round_pars:
+  fitter_type: 'max'
+
+
+metacal_pars:
+  step: 0.01
+
+use_logpars: True
+
+model_pars:
+  gauss:
+    g:
+      type: "ba"
+      sigma: 0.3
+
+    T:
+      type: "gmixnd"
+
+      # ngauss=20 and logT range [-7,2]
+      file: "${REREDUX_OUTPUTS_DIR}/max-v05d02/fitprior/max-v05d02-fitprior-log_T.fits"
+
+      cov_factor: 1.1
+
+    counts:
+      type: "gmixnd"
+
+      file: "${REREDUX_OUTPUTS_DIR}/max-v05d02/fitprior/max-v05d02-fitprior-log_F.fits"
+
+      cov_factor: 1.1
+
+    cen:
+      type: "dgauss"
+      width: 0.27
+
+# way high
+time_per: 0.8
+
+# all
+nper: 5000
+
+# checkpoint times in minutes, needed for condor in case we pass a batch system
+# limit such as in the condor scavenge.
+# 0 means after the first object
+
+# checkpoints for lsf
+checkpoints: [0,
+              30,60,
+              90,120, 
+              150,180,
+              210,240,
+              270,300,
+              330,360,
+              390,420]
