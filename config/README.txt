@@ -182,7 +182,9 @@ v05deep larger deep sim, 1,000,000
     - regauss
 
 - mcal-v10s03
-    * gaussian fit
+    - using v05d04 for deep
+    - gaussian fit
+    - looks consistent with zero within large noise
 
 - mcal-v01s01d
     - redo fit to shallow but with a little extra noise added
@@ -253,6 +255,11 @@ v05deep larger deep sim, 1,000,000
     - naive, using p(R)^2 weighting
         s1 m: 9.633e-02 +/- 1.353e-03 c: 1.293e-04 +/- 4.734e-05
         s2 m: 9.469e-02 +/- 1.434e-03 c: -8.773e-04 +/- 5.164e-05
+
+- mcal-v11s03
+    - using v05d04 for deep
+    * gaussian fit
+
 
 great3reredux v1
 -----------------
