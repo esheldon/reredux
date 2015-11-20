@@ -25,7 +25,7 @@ min_weight: 1.0e-4
 print_params: True
 
 # find the center and reset the jacobians
-pre_find_center: False
+pre_find_center: True
 
 do_shear: False
 
