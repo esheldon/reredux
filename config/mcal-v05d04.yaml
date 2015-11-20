@@ -1,7 +1,8 @@
+# gauss
 # deep data
 reredux_config: "v05deep"
 
-ngmix_githash: "0ccb34aa021629f567a3b9c2ef295a1b62be94e8"
+ngmix_githash: "e9ee58baa58089f08bc3c232a329ef6cc7714374"
 reredux_githash: "1fd478b08cc18917bc1d06affa96bdb1c6780840"
 ngmixer_githash: "7eb10ea47ed825cc2bcc476b4f1c41e4c7971bb5"
 
@@ -80,7 +81,8 @@ model_pars:
       type: "dgauss"
       width: 0.27
 
-time_per: 0.15
+# way over
+time_per: 0.50
 
 nper: 500
 
