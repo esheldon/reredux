@@ -184,6 +184,27 @@ v05deep larger deep sim, 1,000,000
 - mcal-v10s03
     * gaussian fit
 
+- mcal-v01s01d
+    - redo fit to shallow but with a little extra noise added
+    - average 160
+    - see if distribution of R tightens.
+        - It looks essentially the same
+
+        - the "noise" in R is not because the fitter just ends up at some very
+          noisy spot for the plus and minus shears. There is such noise as
+          well, but it does not cause this tail to low R values.  I think this
+          is consistent with my view that this is due to the properties of the
+          +/- sheared images actually being different.  It may be that the
+          only way to eliminate this is to add much more noise than was in the
+          original image, which isn't very useful for s/n=10 galaxies.
+
+        - another view is that you can only tighten this if the noise is not
+          very dominant compared to the signal in the image in the first
+          place.  Because otherwise the noise becomes a significant part
+          of the structure of the reconvolved images.
+
+          Why whitening or isotropizing didn't help is not clear.
+
 
 - mcal-v11s01
     - 300 different shears.  Using v05d02 for ref run
