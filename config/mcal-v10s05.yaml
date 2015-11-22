@@ -8,7 +8,7 @@ ngmix_githash: "94079a3bd1c30ffa83a74c031870b999eed9e4a7"
 # simobs branch
 ngmixer_githash: "174d85359e437cd04daa2d8766db619266d62248"
 
-global_seed: 28366
+global_seed: 7608
 
 fitter_type: "metacal-simn-ngmix-boot"
 imageio_type: "meds-simp-sim"
