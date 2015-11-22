@@ -225,22 +225,6 @@ v05deep larger deep sim, 1,000,000
       mean m from 1 and 2 gives (0.9 +/- 0.9) x 10^{-3} 
       but not sure what the error should be, probably fairly correlated
 
-    naive, no deep field, weighting by p(mean(R11,R22))^2, mean
-    correction from all
-            s1 m: 3.458e-03 +/- 8.208e-04 c: 6.493e-05 +/- 2.878e-05
-            s2 m: 4.646e-03 +/- 7.212e-04 c: -6.014e-06 +/- 2.604e-05
-        same but interpolating histogram
-            s1 m: 2.657e-03 +/- 7.971e-04 c: 6.447e-05 +/- 2.795e-05
-            s2 m: 3.764e-03 +/- 7.009e-04 c: -5.441e-06 +/- 2.531e-05
-        p^4
-            s1 m: -2.741e-02 +/- 8.424e-04 c: 5.729e-05 +/- 2.954e-05
-            s2 m: -2.625e-02 +/- 7.387e-04 c: 4.285e-06 +/- 2.668e-05
-    mean correction from each field, p^2
-        s1 m: 6.640e-03 +/- 8.052e-04 c: 7.053e-05 +/- 2.818e-05
-        s2 m: 7.950e-03 +/- 7.106e-04 c: -6.599e-06 +/- 2.559e-05
-
-
-
 - going to do a run with twice the noise
 - mcal-v05d03
     - deep run with target_noise: 0.1754
@@ -252,13 +236,14 @@ v05deep larger deep sim, 1,000,000
 
         mean m: (-2.5 +/- 0.9) x 10^{-3}
 
-    - naive, using p(R)^2 weighting
-        s1 m: 9.633e-02 +/- 1.353e-03 c: 1.293e-04 +/- 4.734e-05
-        s2 m: 9.469e-02 +/- 1.434e-03 c: -8.773e-04 +/- 5.164e-05
-
 - mcal-v11s03
     - using v05d04 for deep
-    * gaussian fit
+    - gaussian fit
+
+        s1 m: -9.794e-04 +/- 7.677e-04 c: 5.442e-05 +/- 2.689e-05
+        s2 m: -5.936e-04 +/- 7.408e-04 c: -2.601e-05 +/- 2.672e-05
+        Q: 1172.15
+
 
 
 great3reredux v1
