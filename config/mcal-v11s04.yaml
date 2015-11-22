@@ -4,13 +4,13 @@ reredux_config: "v11"
 reredux_githash: "714b37bb2f0b5ccf2dc53b8996ef72b752f25f99"
 
 # simobs branch
-ngmix_githash: "81ac0e71138b2cc36afbf1adb95d327234b2328f"
+ngmix_githash: "a8b56f9167dd5707eaf12f57cf6cde22e8ea7dbe"
 # simobs branch
-ngmixer_githash: "79b38b1c1d985f302ee8c8fa59df0cd1f28c3c0c"
+ngmixer_githash: "ce9fc9d773801958120cbc840775bd17aa440d46"
 
 global_seed: 17837
 
-fitter_type: "metacal-ngmix-boot"
+fitter_type: "metacal-simn-ngmix-boot"
 imageio_type: "meds-simp-sim"
 
 fit_me_galaxy: True
