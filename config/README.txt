@@ -186,6 +186,10 @@ v05deep larger deep sim, 1,000,000
     - gaussian fit
     - looks consistent with zero within large noise
 
+- mcal-v10s04
+    - new Rnoise measurement
+    - works within noise!
+
 - mcal-v01s01d
     - redo fit to shallow but with a little extra noise added
     - average 160
@@ -243,6 +247,9 @@ v05deep larger deep sim, 1,000,000
         s1 m: -9.794e-04 +/- 7.677e-04 c: 5.442e-05 +/- 2.689e-05
         s2 m: -5.936e-04 +/- 7.408e-04 c: -2.601e-05 +/- 2.672e-05
         Q: 1172.15
+
+- mcal-v11s04
+    * new Rnoise measurement
 
 
 
