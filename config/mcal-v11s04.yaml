@@ -1,12 +1,12 @@
 # shallow data
 reredux_config: "v11"
 
-reredux_githash: "714b37bb2f0b5ccf2dc53b8996ef72b752f25f99"
+reredux_githash: "19c096eaf5db1963fc82308c41154141ab09ca32"
+# simobs branch
+ngmix_githash: "94079a3bd1c30ffa83a74c031870b999eed9e4a7"
+# simobs branch
+ngmixer_githash: "174d85359e437cd04daa2d8766db619266d62248"
 
-# simobs branch
-ngmix_githash: "a8b56f9167dd5707eaf12f57cf6cde22e8ea7dbe"
-# simobs branch
-ngmixer_githash: "ce9fc9d773801958120cbc840775bd17aa440d46"
 
 global_seed: 17837
 

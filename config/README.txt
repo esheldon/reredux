@@ -190,6 +190,15 @@ v05deep larger deep sim, 1,000,000
     - new Rnoise measurement
     - works within noise!
 
+- mcal-v10s05
+    - using mean psf corr
+      s1 m:  7.399e-03 +/- 8.174e-03 c: -3.221e-04 +/- 1.773e-04
+      s2 m: -1.062e-02 +/- 7.706e-03 c:  3.800e-05 +/- 1.822e-04
+    - using each psf corr
+      s1 m:  7.805e-03 +/- 8.163e-03 c: -3.277e-04 +/- 1.771e-04
+      s2 m: -1.068e-02 +/- 7.694e-03 c:  3.161e-05 +/- 1.819e-04
+
+
 - mcal-v01s01d
     - redo fit to shallow but with a little extra noise added
     - average 160
