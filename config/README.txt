@@ -260,7 +260,22 @@ v05deep larger deep sim, 1,000,000
 - mcal-v11s04
     * new Rnoise measurement
 
+    - not finished yet, but I'm getting this so far
+        s1 m: -3.462e-04 +/- 1.406e-03 c: 1.495e-04 +/- 4.922e-05
+        s2 m: 9.407e-05 +/- 1.342e-03 c: 4.314e-05 +/- 4.827e-05
+    - this not including the Rpsf_noise term
+        s1 m: -3.732e-04 +/- 1.405e-03 c: 1.498e-04 +/- 4.919e-05
+        s2 m: 8.758e-05 +/- 1.341e-03 c: 3.883e-05 +/- 4.825e-05
 
+    - now later, about half way done
+        - including the Rpsf_noise term
+            s1 m: -1.014e-03 +/- 1.035e-03 c: 5.468e-05 +/- 3.621e-05
+            s2 m: -1.128e-03 +/- 1.027e-03 c: 8.737e-06 +/- 3.697e-05
+            Q: 1142.39
+        - not including the Rpsf_noise term
+            s1 m: -1.037e-03 +/- 1.035e-03 c: 5.463e-05 +/- 3.621e-05
+            s2 m: -1.133e-03 +/- 1.027e-03 c: 4.771e-06 +/- 3.696e-05
+            Q: 1140.82
 
 great3reredux v1
 -----------------
