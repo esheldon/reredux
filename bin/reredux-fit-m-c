@@ -190,15 +190,12 @@ def get_averages(conf, data):
 
     Rvals = data[Rfield].copy()
     Rvals -= data[Rnoise_field].copy()
-    R = Rvals.mean(axis=0)
 
+    #R = Rvals.mean(axis=0)
+    #Rinv = numpy.linalg.inv(R)
 
-    Rinv = numpy.linalg.inv(R)
     Rpsfvals = data[Rpsf_field].copy()
     Rpsfvals -= data[Rpsf_noise_field]
-
-    #Rpsf = Rpsfvals.mean(axis=0)
-    Rpsf = Rpsfvals
 
     uind = numpy.unique(data['shear_index'])
     nind = uind.size
@@ -212,8 +209,12 @@ def get_averages(conf, data):
 
         w,=numpy.where(data['shear_index'] == ind)
 
-        #psf_corr  = gpsf[w].mean(axis=0)*Rpsf
-        psf_corr  = (gpsf[w]*Rpsf[w]).mean(axis=0)
+        R = Rvals[w].mean(axis=0)
+        Rinv = numpy.linalg.inv(R)
+
+        #psf_corr  = gpsf[w].mean(axis=0)*Rpsf[w].mean(axis=0)
+        psf_corr  = (gpsf[w]*Rpsfvals[w]).mean(axis=0)
+
         gmean     = g[w].mean(axis=0)
         shear     = numpy.dot(Rinv, gmean-psf_corr)
         shear_err = g[w].std(axis=0)/numpy.sqrt(w.size)
@@ -232,7 +233,7 @@ def print_m_c(sindex, m, merr, c, cerr):
     fmt = '  s%d m: %.3e +/- %.3e c: %.3e +/- %.3e'
     print(fmt % (sindex,m, merr, c, cerr))
 
-def fit_m_c(data):
+def fit_m_c(data, doprint=True):
     import fitting
     import mcmc
     import esutil as eu
@@ -266,7 +267,8 @@ def fit_m_c(data):
             p=res['pars']
             perr=res['perr']
 
-            print_m_c(i+1, p[0],perr[0],p[1],perr[1])
+            if doprint:
+                print_m_c(i+1, p[0],perr[0],p[1],perr[1])
 
             fits['m'][0,i] = p[0]
             fits['merr'][0,i] = perr[0]
@@ -308,67 +310,40 @@ def fit_m_c_boot(fits, conf, data, nboot):
 
     return newfits
 
-def fit_m_c_jack(fits, conf, data, nboot, chunksize=100):
+def fit_m_c_jack(fits, means):
 
-    model=conf['model_pars'].keys()[0]
+    nfield = means.size
 
-    gfield = '%s_mcal_g' % model
-    gpsf_field = '%s_mcal_gpsf' % model
-    Rfield = '%s_mcal_R' % model
-    Rpsf_field = '%s_mcal_Rpsf' % model
+    jfits=numpy.zeros(nfield, dtype=fits.dtype)
 
-    Rnoise_field = '%s_mcal_Rnoise' % model
-    Rpsf_noise_field = '%s_mcal_Rpsf_noise' % model
+    ind = numpy.arange(nfield)
+    for i in xrange(nfield):
 
-    g = data[gfield]
-    gpsf = data[gpsf_field]
+        w,=numpy.where(ind != i)
 
-    R = data[Rfield].copy()
-    R -= data[Rnoise_field]
-    R = Rvals.mean(axis=0)
+        tfits=fit_m_c(means[w], doprint=False)
 
+        jfits[i] = tfits
 
-    Rinv = numpy.linalg.inv(R)
-    Rpsfvals = data[Rpsf_field].copy()
-    Rpsfvals -= data[Rpsf_noise_field]
+    merr2 = jfits['m'].var(axis=0) * (nfield-1.0) * (nfield-1.0)/nfield
+    cerr2 = jfits['c'].var(axis=0) * (nfield-1.0) * (nfield-1.0)/nfield
 
-    #Rpsf = Rpsfvals.mean(axis=0)
-    Rpsf = Rpsfvals
-
-
-
-
-    nd=data.size
-
-    mvals = numpy.zeros( (nboot,2) )
-    cvals = numpy.zeros( (nboot,2) )
-
-    for i in xrange(nboot):
-        print("bootstrap: %d/%d" % (i+1,nboot))
-
-        rind     = numpy.random.randint(0, nd, nd)
-
-        means = get_averages(conf, data[rind])
-        tfits=fit_m_c(means)
-
-        mvals[i] = tfits['m']
-        cvals[i] = tfits['c']
-
-    mmean = mvals.mean(axis=0)
-    cmean = cvals.mean(axis=0)
-    merr = mvals.std(axis=0)
-    cerr = cvals.std(axis=0)
-
-    print("bootstrapped")
-    for i in [0,1]:
-        print_m_c(i+1, fits['m'][i], merr[i], fits['c'][i], cerr[i])
+    merr = numpy.sqrt(merr2)
+    cerr = numpy.sqrt(cerr2)
 
     newfits = fits.copy()
-    newfits['merr'][0,:] = merr
-    newfits['cerr'][0,:] = cerr
+    newfits['merr'] = merr
+    newfits['cerr'] = cerr
+
+    print('-'*70)
+    for i in [0,1]:
+        print_m_c(i+1,
+                  newfits['m'][0,i],
+                  newfits['merr'][0,i],
+                  newfits['c'][0,i],
+                  newfits['cerr'][0,i])
 
     return newfits
-
 
 def main():
     args = parser.parse_args()
@@ -391,11 +366,7 @@ def main():
 
     fits=fit_m_c(means)
 
-
-    if args.boot:
-        fits = fit_m_c_boot(fits, conf, data, args.nboot)
-    if args.jack:
-        fits = fit_m_c_jack(fits, conf, data, args.nboot)
+    fits = fit_m_c_jack(fits, means)
 
     write_fits(args, fits)
 
