@@ -188,14 +188,11 @@ def get_averages(conf, data):
     g = data[gfield]
     gpsf = data[gpsf_field]
 
-    Rvals = data[Rfield].copy()
-    Rvals -= data[Rnoise_field].copy()
+    R = data[Rfield].copy()
+    R -= data[Rnoise_field].copy()
 
-    #R = Rvals.mean(axis=0)
-    #Rinv = numpy.linalg.inv(R)
-
-    Rpsfvals = data[Rpsf_field].copy()
-    Rpsfvals -= data[Rpsf_noise_field]
+    Rpsf = data[Rpsf_field].copy()
+    Rpsf -= data[Rpsf_noise_field]
 
     uind = numpy.unique(data['shear_index'])
     nind = uind.size
@@ -209,11 +206,10 @@ def get_averages(conf, data):
 
         w,=numpy.where(data['shear_index'] == ind)
 
-        R = Rvals[w].mean(axis=0)
-        Rinv = numpy.linalg.inv(R)
+        Rmean = R[w].mean(axis=0)
+        Rinv = numpy.linalg.inv(Rmean)
 
-        #psf_corr  = gpsf[w].mean(axis=0)*Rpsf[w].mean(axis=0)
-        psf_corr  = (gpsf[w]*Rpsfvals[w]).mean(axis=0)
+        psf_corr  = (gpsf[w]*Rpsf[w]).mean(axis=0)
 
         gmean     = g[w].mean(axis=0)
         shear     = numpy.dot(Rinv, gmean-psf_corr)
