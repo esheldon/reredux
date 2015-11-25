@@ -14,8 +14,8 @@ fitter_type: "metacal-addn-ngmix-boot"
 imageio_type: "meds-simp-sim"
 
 simnoise:
-  # add 10% extra noise
-  noise_fac: 0.1
+  #noise_fac: 0.1
+  noise_fac: 1.0
 
 fit_me_galaxy: True
 fit_coadd_galaxy: False
@@ -86,8 +86,7 @@ model_pars:
 # way high
 time_per: 3.0
 
-# all
-nper: 1000
+nper: 100
 
 # checkpoint times in minutes, needed for condor in case we pass a batch system
 # limit such as in the condor scavenge.

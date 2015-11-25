@@ -137,10 +137,11 @@ def read_data(conf, run):
         '%s_mcal_R' % model,
         '%s_mcal_Rpsf' % model,
         '%s_mcal_Rnoise' % model,
-        '%s_mcal_Rpsf_noise' % model,
+        #'%s_mcal_Rpsf_noise' % model,
         'shear_index',
         'flags'
     ]
+    print("reading columns:",columns)
     data=reredux.files.read_collated(run, columns=columns)
 
     w,=numpy.where(data['flags']==0)

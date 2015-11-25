@@ -198,6 +198,9 @@ v05deep larger deep sim, 1,000,000
       s1 m:  7.805e-03 +/- 8.163e-03 c: -3.277e-04 +/- 1.771e-04
       s2 m: -1.068e-02 +/- 7.694e-03 c:  3.161e-05 +/- 1.819e-04
 
+- mcal-v10s05
+    - alt. method adding a bit of noise to the original image
+        - ran 100 as first test
 
 - mcal-v01s01d
     - redo fit to shallow but with a little extra noise added
