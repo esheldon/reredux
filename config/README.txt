@@ -268,6 +268,12 @@ v05deep larger deep sim, 1,000,000
 - mcal-v11s04
     * new Rnoise measurement
 
+        s1 m: -1.645e-03 +/- 7.745e-04 c: 6.264e-05 +/- 2.709e-05
+        s2 m: -2.216e-04 +/- 7.410e-04 c: 6.887e-06 +/- 2.667e-05
+        Q: 1126.06
+
+        mean m ~ (-0.9 +/- 0.7) x 10^{-3}
+
     - not finished yet, but I'm getting this so far
         s1 m: -3.462e-04 +/- 1.406e-03 c: 1.495e-04 +/- 4.922e-05
         s2 m: 9.407e-05 +/- 1.342e-03 c: 4.314e-05 +/- 4.827e-05
