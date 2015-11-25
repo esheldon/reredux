@@ -196,7 +196,7 @@ def get_averages(conf, data, show_progress=True):
     gpsf = data[gpsf_field]
 
     R = data[Rfield].copy()
-    R -= data[Rnoise_field].copy()
+    R -= data[Rnoise_field]
 
     Rpsf = data[Rpsf_field].copy()
     #Rpsf -= data[Rpsf_noise_field]
