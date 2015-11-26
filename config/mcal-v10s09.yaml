@@ -2,11 +2,11 @@
 # match at 10 is coincidence
 reredux_config: "v10"
 
-reredux_githash: "dd0540864cef5b1ce2e56c4d801d513647e77eaf"
+reredux_githash: "ca162524eb48ae27c4c997cb0e04a6e5716c3561"
 # simobs branch
 ngmix_githash: "f65bfd991bbd8d03b66e594aa237fb28f2b02eb4"
 # simobs branch
-ngmixer_githash: "16ff0da1823916dd76e9aa6a174a536eba458bbe"
+ngmixer_githash: "4050c95e93cf02f51095f27e8bb1a50145191546"
 
 global_seed: 26695
 
