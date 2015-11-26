@@ -222,13 +222,19 @@ def get_averages(conf, data, show_progress=True):
     gpsf = data[gpsf_field]
 
     R = data[Rfield].copy()
-    #R -= data[Rnoise_field]
-    # different sign
-    Rfix = data[Rpsf_noise_field].copy()
-    Rfix[:,0] = (data[Rnoise_field][:,0,0] - data[Rpsf_noise_field][:,0])*0.5
-    Rfix[:,1] = (data[Rnoise_field][:,1,1] - data[Rpsf_noise_field][:,1])*0.5
-    R[:,0,0] -= Rfix[:,0]
-    R[:,1,1] -= Rfix[:,1]
+
+    if True:
+        R -= data[Rnoise_field]
+    elif False:
+        # different sign
+        Rfix = data[Rpsf_noise_field].copy()
+        Rfix[:,0] = (data[Rnoise_field][:,0,0] - data[Rpsf_noise_field][:,0])*0.5
+        Rfix[:,1] = (data[Rnoise_field][:,1,1] - data[Rpsf_noise_field][:,1])*0.5
+        R[:,0,0] -= Rfix[:,0]
+        R[:,1,1] -= Rfix[:,1]
+    elif False:
+        R[:,0,0] += data[Rpsf_noise_field][:,0]
+        R[:,1,1] += data[Rpsf_noise_field][:,0]
 
     Rpsf = data[Rpsf_field].copy()
     #Rpsf -= data[Rpsf_noise_field]
