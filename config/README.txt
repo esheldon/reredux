@@ -206,6 +206,16 @@ v05deep larger deep sim, 1,000,000
 - mcal-v10s08
     - Rnoise doing model fit
     - extra noise added to get to s/n ~ 10
+      s1 m: 2.430e-02 +/- 1.037e-02 c: -2.507e-04 +/- 2.246e-04
+      s2 m: 5.865e-03 +/- 1.052e-02 c: -1.770e-04 +/- 2.481e-04
+      Q: 193
+
+- mcal-v10s09
+    - same but used "extra_sim_noise" feature and
+    added different noise
+      s1 m: 1.312e-02 +/- 1.105e-02 c: -2.757e-04 +/- 2.396e-04
+      s2 m: -1.052e-02 +/- 9.761e-03 c: -2.445e-04 +/- 2.308e-04
+      Q: 262.416
 
 - mcal-v01s01d
     - redo fit to shallow but with a little extra noise added
