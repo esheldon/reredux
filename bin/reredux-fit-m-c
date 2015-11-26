@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function
+import os
 import numpy
 from argparse import ArgumentParser
 import reredux
@@ -21,6 +22,9 @@ parser.add_argument('--nboot',type=int,
 parser.add_argument('--fit-only',action='store_true',
                     help='get the means from the written file')
 
+parser.add_argument('--cache',action='store_true',
+                    help=('cache the file subset locally; use the cache '
+                          'if available'))
 
 SIGMA2_MIN_CONSTANT_GROUND = 4.     # 2**2
 NORMALIZATION_CONSTANT_SPACE = 1.232
@@ -127,6 +131,27 @@ def write_fits(args, fits):
     fitsio.write(fname, fits, clobber=True)
 
 
+def get_cache_file(run):
+    tdir=os.environ['TMPDIR']
+    tfile= reredux.files.get_collated_file(run)
+    tfile=os.path.basename(tfile)
+
+    tfile=os.path.join(tdir, tfile)
+    return tfile
+
+
+def read_cached_data(conf, run):
+    tfile=get_cache_file(run)
+    if os.path.exists(tfile):
+        print("reading cache:",tfile)
+        data=fitsio.read(tfile)
+    else:
+        data=read_data(conf,run)
+        print("writing cache:",tfile)
+        fitsio.write(tfile, data, clobber=True)
+
+    return data
+
 def read_data(conf, run):
 
     model=conf['model_pars'].keys()[0]
@@ -137,7 +162,7 @@ def read_data(conf, run):
         '%s_mcal_R' % model,
         '%s_mcal_Rpsf' % model,
         '%s_mcal_Rnoise' % model,
-        #'%s_mcal_Rpsf_noise' % model,
+        '%s_mcal_Rpsf_noise' % model,
         'shear_index',
         'flags'
     ]
@@ -191,13 +216,19 @@ def get_averages(conf, data, show_progress=True):
     Rpsf_field = '%s_mcal_Rpsf' % model
 
     Rnoise_field = '%s_mcal_Rnoise' % model
-    #Rpsf_noise_field = '%s_mcal_Rpsf_noise' % model
+    Rpsf_noise_field = '%s_mcal_Rpsf_noise' % model
 
     g = data[gfield]
     gpsf = data[gpsf_field]
 
     R = data[Rfield].copy()
-    R -= data[Rnoise_field]
+    #R -= data[Rnoise_field]
+    # different sign
+    Rfix = data[Rpsf_noise_field].copy()
+    Rfix[:,0] = (data[Rnoise_field][:,0,0] - data[Rpsf_noise_field][:,0])*0.5
+    Rfix[:,1] = (data[Rnoise_field][:,1,1] - data[Rpsf_noise_field][:,1])*0.5
+    R[:,0,0] -= Rfix[:,0]
+    R[:,1,1] -= Rfix[:,1]
 
     Rpsf = data[Rpsf_field].copy()
     #Rpsf -= data[Rpsf_noise_field]
@@ -366,7 +397,10 @@ def main():
         means = read_means(args)
     else:
 
-        data=read_data(conf, args.run)
+        if args.cache:
+            data=read_cached_data(conf,args.run)
+        else:
+            data=read_data(conf, args.run)
 
         means = get_averages(conf, data)
         write_means(args, means)
