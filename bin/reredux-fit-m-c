@@ -273,10 +273,10 @@ def get_arrays(conf, data):
 
     R = data[Rfield].copy()
 
-    if False:
+    if True:
         print("Using R")
         R -= data[Rnoise_field]
-    elif True:
+    elif False:
         print("Using mean of R and Rpsf")
         # different sign
         Rfix = data[Rpsf_noise_field].copy()
@@ -290,7 +290,7 @@ def get_arrays(conf, data):
         R[:,1,1] += data[Rpsf_noise_field][:,1]
 
     Rpsf = data[Rpsf_field].copy()
-    #Rpsf -= data[Rpsf_noise_field]
+    Rpsf -= data[Rpsf_noise_field]
 
     return g, gpsf, R, Rpsf
 
@@ -499,7 +499,7 @@ def fit_m_c_jack_byobj(conf, data, njack):
             jR_sum        = R_sums[i] - tR_sum
             jpsf_corr_sum = psf_corr_sums[i] - tpsf_corr_sum
 
-            nuse = hd['hist'][i] - wkeep.size
+            nuse = h[i] - wkeep.size
             gmean         = jg_sum/nuse
             Rmean         = jR_sum/nuse
             psf_corr_mean = jpsf_corr_sum/nuse
