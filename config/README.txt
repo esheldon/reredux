@@ -276,13 +276,44 @@ v05deep larger deep sim, 1,000,000
         Q: 1172.15
 
 - mcal-v11s04
-    * new Rnoise measurement
+    * new Rnoise measurement, no deep
 
         s1 m: -1.645e-03 +/- 7.745e-04 c: 6.264e-05 +/- 2.709e-05
         s2 m: -2.216e-04 +/- 7.410e-04 c: 6.887e-06 +/- 2.667e-05
         Q: 1126.06
 
         mean m ~ (-0.9 +/- 0.7) x 10^{-3}
+
+      - using Rpsf_noise
+          s1 m: -3.526e-04 +/- 7.837e-04 c: 6.313e-05 +/- 2.741e-05
+          s2 m: 1.050e-03 +/- 7.384e-04 c: 2.295e-06 +/- 2.657e-05
+          Q: 1173.77
+          mean m (0.4 +/- 0.8) x 10^{-3}
+
+- mcal-v11s05
+    - extra noise to get to min s/n ~ 10
+    - first 3500/20000
+    - default correction
+        s1 m: -5.414e-03 +/- 2.603e-03 c: 2.456e-04 +/- 8.164e-05
+        s2 m: -4.514e-03 +/- 2.146e-03 c: -7.712e-06 +/- 7.851e-05
+    using Rpsf_noise
+        s1 m: -9.147e-04 +/- 2.591e-03 c: 2.524e-04 +/- 8.150e-05
+        s2 m: 1.728e-04 +/- 2.195e-03 c: 2.286e-07 +/- 7.922e-05
+    it does appear to be a bit less noisy
+
+    half way through
+    
+        Rnoise
+        s1 m: -5.077e-03 +/- 1.235e-03 c: 8.722e-05 +/- 4.315e-05
+        s2 m: -2.867e-03 +/- 1.208e-03 c: -1.362e-05 +/- 4.344e-05
+
+        Rpsf_noise
+        s1 m: -4.131e-04 +/- 1.233e-03 c: 9.181e-05 +/- 4.309e-05
+        s2 m: 1.818e-03 +/- 1.211e-03 c: -1.004e-05 +/- 4.354e-05
+
+        Average
+        s1 m: -2.728e-03 +/- 1.230e-03 c: 9.200e-05 +/- 4.297e-05
+        s2 m: -5.309e-04 +/- 1.200e-03 c: -1.043e-05 +/- 4.313e-05
 
 
 great3reredux v1

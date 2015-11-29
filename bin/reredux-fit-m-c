@@ -19,6 +19,11 @@ parser.add_argument('--boot',action='store_true',help='bootstrap fits')
 parser.add_argument('--nboot',type=int,
                     default=100,help='number of bootstraps')
 
+parser.add_argument('--jack',action='store_true',help='do jackknife errors')
+parser.add_argument('--njack',type=int,
+                    default=100,help='number of jackknifes')
+
+
 parser.add_argument('--fit-only',action='store_true',
                     help='get the means from the written file')
 
@@ -32,6 +37,53 @@ NORMALIZATION_CONSTANT_GROUND = NORMALIZATION_CONSTANT_SPACE
 
 CFID = 2.e-4
 MFID = 2.e-3
+
+
+# quick line fit pulled from great3-public code
+def _calculateSvalues(xarr, yarr, sigma2=1.):
+    """Calculates the intermediate S values required for basic linear regression.
+
+    See, e.g., Numerical Recipes (Press et al 1992) Section 15.2.
+    """
+    if len(xarr) != len(yarr):
+        raise ValueError("Input xarr and yarr differ in length!")
+    if len(xarr) <= 1:
+        raise ValueError("Input arrays must have 2 or more values elements.")
+
+    S = len(xarr) / sigma2
+    Sx = numpy.sum(xarr / sigma2)
+    Sy = numpy.sum(yarr / sigma2)
+    Sxx = numpy.sum(xarr * xarr / sigma2)
+    Sxy = numpy.sum(xarr * yarr / sigma2)
+    return (S, Sx, Sy, Sxx, Sxy)
+
+def fitline(xarr, yarr):
+    """Fit a line y = a + b * x to input x and y arrays by least squares.
+
+    Returns the tuple (a, b, Var(a), Cov(a, b), Var(b)), after performing an internal estimate of
+    measurement errors from the best-fitting model residuals.
+
+    See Numerical Recipes (Press et al 1992; Section 15.2) for a clear description of the details
+    of this simple regression.
+    """
+    # Get the S values (use default sigma2, best fit a and b still valid for stationary data)
+    S, Sx, Sy, Sxx, Sxy = _calculateSvalues(xarr, yarr)
+    # Get the best fit a and b
+    Del = S * Sxx - Sx * Sx
+    a = (Sxx * Sy - Sx * Sxy) / Del
+    b = (S * Sxy - Sx * Sy) / Del
+    # Use these to estimate the sigma^2 by residuals from the best-fitting model
+    ymodel = a + b * xarr
+    sigma2 = numpy.mean((yarr - ymodel)**2)
+    # And use this to get model parameter error estimates
+    var_a  = sigma2 * Sxx / Del
+    cov_ab = - sigma2 * Sx / Del
+    var_b  = sigma2 * S / Del
+
+    a_err = numpy.sqrt(var_a)
+    b_err = numpy.sqrt(var_b)
+    return a, a_err, b, b_err
+
 
 def calc_q(fits):
 
@@ -202,16 +254,13 @@ def print_shear(ind, num, shear, shear_err):
     print(mess % tup)
 
 
-
-def get_averages(conf, data, show_progress=True):
-
-    sconf=conf['sconf']
-    shears = sconf['shear']['shears']
+def get_arrays(conf, data):
 
     model=conf['model_pars'].keys()[0]
 
     gfield = '%s_mcal_g' % model
     gpsf_field = '%s_mcal_gpsf' % model
+
     Rfield = '%s_mcal_R' % model
     Rpsf_field = '%s_mcal_Rpsf' % model
 
@@ -221,9 +270,10 @@ def get_averages(conf, data, show_progress=True):
     g = data[gfield]
     gpsf = data[gpsf_field]
 
+
     R = data[Rfield].copy()
 
-    if True:
+    if False:
         R -= data[Rnoise_field]
     elif False:
         # different sign
@@ -232,25 +282,34 @@ def get_averages(conf, data, show_progress=True):
         Rfix[:,1] = (data[Rnoise_field][:,1,1] - data[Rpsf_noise_field][:,1])*0.5
         R[:,0,0] -= Rfix[:,0]
         R[:,1,1] -= Rfix[:,1]
-    elif False:
+    elif True:
         R[:,0,0] += data[Rpsf_noise_field][:,0]
         R[:,1,1] += data[Rpsf_noise_field][:,0]
 
     Rpsf = data[Rpsf_field].copy()
     #Rpsf -= data[Rpsf_noise_field]
 
-    uind = numpy.unique(data['shear_index'])
-    nind = uind.size
+    return g, gpsf, R, Rpsf
+
+def get_averages(conf, data, show_progress=True):
+
+    sconf=conf['sconf']
+    shears = sconf['shear']['shears']
+
+    h,rev = eu.stat.histogram(data['shear_index'], rev=True)
+    nind = h.size
+
+    g, gpsf, R, Rpsf = get_arrays(conf, data) 
 
     means=get_mean_struct(nind)
 
-    for i,ind in enumerate(uind):
+    for i in xrange(nind):
         if show_progress:
             print("shear index:",i)
 
-        shear_true = shears[ind]
+        w=rev[ rev[i]:rev[i+1] ]
 
-        w,=numpy.where(data['shear_index'] == ind)
+        shear_true = shears[i]
 
         Rmean = R[w].mean(axis=0)
         Rinv = numpy.linalg.inv(Rmean)
@@ -266,9 +325,6 @@ def get_averages(conf, data, show_progress=True):
         means['shear_err'][i] = shear_err
         means['shear_true'][i] = shear_true
 
-        if False and (i % 10) == 0:
-            print_shear(ind, w.size, shear, shear_err)
-
     return means
 
 def print_m_c(sindex, m, merr, c, cerr):
@@ -282,7 +338,7 @@ def fit_m_c(data, doprint=True):
 
     strue = data['shear_true']
     sdiff = data['shear'] - data['shear_true']
-    serr = data['shear_err']
+    #serr = data['shear_err']
 
     m = numpy.zeros(2)
     merr = numpy.zeros(2)
@@ -302,20 +358,30 @@ def fit_m_c(data, doprint=True):
                              calc_err=True)
             print("s%d: %.3e +/- %.3e" % (i+1,m,e))
         else:
-            fit = fitting.fit_line(strue[:,i],
-                                   sdiff[:,i],
-                                   yerr=serr[:,i])
-            res = fit.get_result()
-            p=res['pars']
-            perr=res['perr']
+            if True:
+                c, c_err, m, m_err = fitline(strue[:,i], sdiff[:,i])
+                fits['m'][0,i] = m
+                fits['merr'][0,i] = m_err
+                fits['c'][0,i] = c
+                fits['cerr'][0,i] = c_err
 
-            if doprint:
-                print_m_c(i+1, p[0],perr[0],p[1],perr[1])
+                if doprint:
+                    print_m_c(i+1, m,m_err,c,c_err)
+            else:
+                fit = fitting.fit_line(strue[:,i],
+                                       sdiff[:,i],
+                                       yerr=serr[:,i])
+                res = fit.get_result()
+                p=res['pars']
+                perr=res['perr']
 
-            fits['m'][0,i] = p[0]
-            fits['merr'][0,i] = perr[0]
-            fits['c'][0,i] = p[1]
-            fits['cerr'][0,i] = perr[1]
+                if doprint:
+                    print_m_c(i+1, p[0],perr[0],p[1],perr[1])
+
+                fits['m'][0,i] = p[0]
+                fits['merr'][0,i] = perr[0]
+                fits['c'][0,i] = p[1]
+                fits['cerr'][0,i] = perr[1]
 
     return fits
 
@@ -353,7 +419,121 @@ def fit_m_c_boot(fits, conf, data, nboot):
 
     return newfits
 
-def fit_m_c_jack(fits, means):
+def fit_m_c_jack_byobj(conf, data, njack):
+
+    sconf=conf['sconf']
+    true_shears = sconf['shear']['shears']
+
+    g, gpsf, R, Rpsf = get_arrays(conf, data)
+
+    h,rev = eu.stat.histogram(data['shear_index'], rev=True)
+
+    nfield = h.size
+
+    g_sums = numpy.zeros( (nfield, 2) )
+    gpsf_sums = numpy.zeros( (nfield, 2) )
+    R_sums = numpy.zeros( (nfield, 2, 2) )
+    #Rpsf_sums = numpy.zeros( (nfield, 2) )
+    psf_corr_sums = numpy.zeros( (nfield, 2) )
+
+    means=get_mean_struct(nfield)
+    tmeans=get_mean_struct(nfield)
+    means['shear_true'] = true_shears
+    tmeans['shear_true'] = true_shears
+
+    print("getting overall sums")
+    # get overall sums and mean
+    for i in xrange(nfield):
+        print("shear index:",i)
+        w=rev[ rev[i]:rev[i+1] ]
+
+        g_sums[i]         = g[w].sum(axis=0)
+        gpsf_sums[i]      = gpsf[w].sum(axis=0)
+        R_sums[i]         = R[w].sum(axis=0)
+        psf_corr_sums[i]  = (gpsf[w]*Rpsf[w]).sum(axis=0)
+
+        gmean         = g_sums[i]/w.size
+        Rmean         = R_sums[i]/w.size
+        psf_corr_mean = psf_corr_sums[i]/w.size
+
+        Rinv = numpy.linalg.inv(Rmean)
+        shear     = numpy.dot(Rinv, gmean-psf_corr_mean)
+        shear_err = g[w].std(axis=0)/numpy.sqrt(w.size)
+        shear_err = numpy.dot(Rinv, shear_err)
+
+        means['shear'][i] = shear
+
+    fits=fit_m_c(means, doprint=True)
+
+    mvals = numpy.zeros( (njack,2) )
+    cvals = numpy.zeros( (njack,2) )
+
+    for ijack in xrange(njack):
+        print("    jack %d/%d" % (ijack+1,njack))
+        for i in xrange(nfield):
+            w=rev[ rev[i]:rev[i+1] ]
+
+            nkeep = w.size//njack
+
+            beg = ijack*nkeep
+            end = (ijack+1)*nkeep
+            wkeep = w[beg:end]
+
+            tg_sum         = g[wkeep].sum(axis=0)
+            tgpsf_sum      = gpsf[wkeep].sum(axis=0)
+            tR_sum         = R[wkeep].sum(axis=0)
+            tpsf_corr_sum  = (gpsf[wkeep]*Rpsf[wkeep]).sum(axis=0)
+
+            jg_sum        = g_sums[i] - tg_sum
+            jgpsf_sum     = gpsf_sums[i] - tgpsf_sum
+            jR_sum        = R_sums[i] - tR_sum
+            jpsf_corr_sum = psf_corr_sums[i] - tpsf_corr_sum
+
+            nuse = hd['hist'][i] - wkeep.size
+            gmean         = jg_sum/nuse
+            Rmean         = jR_sum/nuse
+            psf_corr_mean = jpsf_corr_sum/nuse
+
+            Rinv = numpy.linalg.inv(Rmean)
+            shear     = numpy.dot(Rinv, gmean-psf_corr_mean)
+
+            tmeans['shear'][i] = shear
+
+        tfits=fit_m_c(tmeans, doprint=False)
+
+        mvals[ijack] = tfits['m']
+        cvals[ijack] = tfits['c']
+
+    j_mmean=mvals.mean(axis=0)
+    j_cmean=cvals.mean(axis=0)
+
+    merr2 = mvals.var(axis=0) * (njack-1.0) * (njack-1.0)/njack
+    cerr2 = cvals.var(axis=0) * (njack-1.0) * (njack-1.0)/njack
+
+    merr = numpy.sqrt(merr2)
+    cerr = numpy.sqrt(cerr2)
+
+    fits['merr'] = merr
+    fits['cerr'] = cerr
+
+    print('-'*70)
+    print('jackknifed by obj')
+    print("jackknife means:")
+    print("    m: %.3e %.3e" % (j_mmean[0],j_mmean[1]))
+    print("    c: %.3e %.3e" % (j_cmean[0],j_cmean[1]))
+
+    for i in [0,1]:
+        print_m_c(i+1,
+                  fits['m'][0,i],
+                  fits['merr'][0,i],
+                  fits['c'][0,i],
+                  fits['cerr'][0,i])
+
+
+    return fits, means
+
+
+def fit_m_c_jack_by_field(fits, means):
 
     nfield = means.size
 
@@ -399,7 +579,7 @@ def main():
 
 
     # if only doing the fit, and not bootstrapping
-    if args.fit_only and not args.boot:
+    if args.fit_only and not args.boot and not args.jack:
         means = read_means(args)
     else:
 
@@ -408,15 +588,21 @@ def main():
         else:
             data=read_data(conf, args.run)
 
-        means = get_averages(conf, data)
+        if not args.jack:
+            means = get_averages(conf, data)
+            write_means(args, means)
+
+    if args.jack:
+        fits, means = fit_m_c_jack_byobj(conf, data, args.njack)
         write_means(args, means)
+    else:
+        fits=fit_m_c(means)
 
-    fits=fit_m_c(means)
+        fits = fit_m_c_jack_by_field(fits, means)
 
-    fits = fit_m_c_jack(fits, means)
+        if args.boot:
+            fits = fit_m_c_boot(fits, conf, data, args.nboot)
 
-    if args.boot:
-        fits = fit_m_c_boot(fits, conf, data, args.nboot)
     write_fits(args, fits)
 
     doplot(args, means, fits)
