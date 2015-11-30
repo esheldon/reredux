@@ -79,7 +79,7 @@ model_pars:
       type: "dgauss"
       width: 0.27
 
-time_per: 6.0
+time_per: 3.0
 
 nper: 1000
 
