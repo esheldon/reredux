@@ -328,6 +328,10 @@ v05deep larger deep sim, 1,000,000
 - mcal-v11s06
     - subtracting correlated noise image
     - standard great3 noise level
+    m: 2.218e-03 +/- 5.977e-04
+    c1: 4.741e-05 +/- 2.993e-05
+    c2: 3.640e-07 +/- 2.996e-05
+
 
 great3reredux v1
 -----------------
