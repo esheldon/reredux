@@ -221,6 +221,8 @@ v05deep larger deep sim, 1,000,000
 
 - mcal-v10s11
     - subtracting sheared correlated noise
+    m1: 1.154e-02 +/- 9.207e-03 c1: -2.301e-04 +/- 2.000e-04  r1: 0.0404
+    m2: -5.863e-03 +/- 8.401e-03 c2: -1.384e-04 +/- 1.986e-04  r2: -0.0438
 
 
 
@@ -323,6 +325,8 @@ v05deep larger deep sim, 1,000,000
       s2 m: 2.511e-03 +/- 9.466e-04 c: 1.196e-05 +/- 3.418e-05  r: -0.0799986
       Q: 1013.4
 
+- mcal-v11s06
+    - subtracting correlated noise image
 
 great3reredux v1
 -----------------
