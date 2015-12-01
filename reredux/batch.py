@@ -6,6 +6,19 @@ from . import files
 # Gets added to calculated walltime
 BASE_WALLTIME=2.0
 
+def get_maker(batch_system, run, missing=False):
+    if batch_system=='lsf':
+        cls = LSFMaker
+    elif batch_system=='slr':
+        cls = SLRMaker
+    elif batch_system=='wq':
+        cls = WQMaker
+    else:
+        raise ValueError("bad batch system: '%s'" % batch_system)
+
+    maker = cls(run, missing=missing)
+    return maker
+
 def get_splits(ntot, nper):
     """
     get split ranges, where the range is inclusive, not
@@ -124,7 +137,7 @@ class BatchMaker(dict):
                                         "nrand: %d" % nrand,
                                         "hours: %g" % time_hours,
                                         "walltime: %s" %self['walltime']])
-        
+
 
     def _setup_splits(self):
         """
@@ -165,6 +178,20 @@ class LSFMaker(BatchMaker):
         else:
             tstr = '%d:00' % hours
         return tstr
+
+class WQMaker(BatchMaker):
+    def get_batch_dir(self):
+        return files.get_wq_dir(self['run'])
+
+    def get_batch_file(self, fnum, beg, end, missing=False):
+        return files.get_wq_file(self['run'], fnum, beg, end, missing=missing)
+
+    def get_text(self):
+        return _wq_template % self
+
+    def _format_walltime(self, hours):
+        return ''
+
 
 class SLRMaker(BatchMaker):
     def get_batch_dir(self):
@@ -311,6 +338,43 @@ rm -rfv ${tmpdir}
 exit $status
 """
 
-_batch_systems=['lsf','slr']
+
+_wq_template="""
+
+job_name: %(job_name)s
+
+command: |
+    echo "working on host: $(hostname)"
+
+    . ~/shell_scripts/nsim2-prepare.sh
+
+    config_file=%(config_file)s
+    psf_file=%(psf_file)s
+    meds_file=%(meds_file)s
+
+    output_file=%(output_file)s
+
+    beg=%(beg)s
+    end=%(end)s
+
+    seed=%(seed)s
+
+    # we need to make the scratch directory
+    tmpdir="$TMPDIR/ngmixit-$RANDOM"
+    mkdir -p $tmpdir
+    cd $tmpdir
+
+    python -u $(which ngmixit)         \\
+            --seed ${seed}             \\
+            --psf-file=${psf_file}     \\
+            --fof-range $beg,$end      \\
+            ${config_file}             \\
+            ${output_file}             \\
+            ${meds_file}
+"""
+
+
+
+_batch_systems=['lsf','slr','wq']
 
 

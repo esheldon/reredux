@@ -336,6 +336,34 @@ def get_lsf_file(run, fnum, beg, end, missing=False):
     return os.path.join(dir, fname)
 
 #
+# wq batch system
+#
+
+def get_wq_dir(run):
+    """
+    output files
+    """
+
+    basedir = get_rundir(run)
+    return os.path.join(basedir, 'wq')
+
+
+def get_wq_file(run, fnum, beg, end, missing=False):
+    """
+    location of output file
+    """
+
+    dir=get_wq_dir(run)
+    fname = '%s-%06d-%06d-%06d' % (run, fnum, beg, end)
+
+    if missing:
+        fname = '%s-missing' % fname
+
+    fname = '%s.yaml' % fname
+    return os.path.join(dir, fname)
+
+
+#
 # slr batch system
 #
 
