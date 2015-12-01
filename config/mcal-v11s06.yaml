@@ -1,0 +1,99 @@
+# subtracting correlated noise
+# gauss
+reredux_config: "v11"
+
+reredux_githash: "f9fdc9e5a0ffba8cbd8fcce7e0499391670e925a"
+# simobs branch
+ngmix_githash: "ccbb52832fc9ec4c32228e0db25b9b4fee5b8f21"
+# simobs branch
+ngmixer_githash: "3707f10ffe4a665aa7996fdb123871eb6b2da9fa"
+
+global_seed: 26625
+
+fitter_type: "metacal-subn-ngmix-boot"
+imageio_type: "meds-simp-sim"
+
+fit_me_galaxy: True
+fit_coadd_galaxy: False
+
+model_nbrs: False
+psf_ind_field: 'psf_id'
+
+region: "weight"
+
+min_weight: 1.0e-4
+
+print_params: True
+
+# find the center and reset the jacobians
+pre_find_center: True
+
+do_shear: False
+
+psf_pars:
+  model: 'em3'
+  ntry: 20
+  maxiter: 5000
+  tol: 5.0e-6
+
+max_pars:
+  method: 'lm'
+  ntry: 2
+  
+  lm_pars:
+    maxfev: 4000
+
+replace_cov: False
+
+round_pars:
+  fitter_type: 'max'
+
+
+metacal_pars:
+  step: 0.01
+
+use_logpars: True
+
+model_pars:
+  gauss:
+    g:
+      type: "ba"
+      sigma: 0.3
+
+    T:
+      type: "gmixnd"
+
+      # ngauss=20 and logT range [-7,2]
+      file: "${REREDUX_OUTPUTS_DIR}/max-v05d02/fitprior/max-v05d02-fitprior-log_T.fits"
+
+      cov_factor: 1.1
+
+    counts:
+      type: "gmixnd"
+
+      file: "${REREDUX_OUTPUTS_DIR}/max-v05d02/fitprior/max-v05d02-fitprior-log_F.fits"
+
+      cov_factor: 1.1
+
+    cen:
+      type: "dgauss"
+      width: 0.27
+
+time_per: 3.0
+
+# all
+nper: 5000
+
+# checkpoint times in minutes, needed for condor in case we pass a batch system
+# limit such as in the condor scavenge.
+# 0 means after the first object
+
+# checkpoints for lsf
+checkpoints: [0,
+              30,60,
+              90,120, 
+              150,180,
+              210,240,
+              270,300,
+              330,360,
+              390,420]
