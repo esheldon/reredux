@@ -11,17 +11,11 @@ parser = ArgumentParser()
 
 parser.add_argument('run', help='run to use in fit')
 
+parser.add_argument('--onem', action='store_true',help="fit a single m instead of m1,m2")
+
 parser.add_argument('--show',action='store_true',help='show plot')
 parser.add_argument('--yrange', help="yrange of plot")
 parser.add_argument('--xrange', help="xrange of plot")
-
-parser.add_argument('--boot',action='store_true',help='bootstrap fits')
-parser.add_argument('--nboot',type=int,
-                    default=100,help='number of bootstraps')
-
-parser.add_argument('--jack',action='store_true',help='do jackknife errors')
-parser.add_argument('--njack',type=int,
-                    default=100,help='number of jackknifes')
 
 
 parser.add_argument('--fit-only',action='store_true',
@@ -37,6 +31,111 @@ NORMALIZATION_CONSTANT_GROUND = NORMALIZATION_CONSTANT_SPACE
 
 CFID = 2.e-4
 MFID = 2.e-3
+
+
+class MCFitter(object):
+    def __init__(self, shear_true, shear_diff, shear_err):
+        self.shear_true=shear_true
+        self.shear_diff=shear_diff
+        self.shear_err=shear_err
+
+        self.npars=3
+
+        self._set_guess()
+
+    def get_result(self):
+        return self._result
+
+    def dofit(self):
+        from scipy.optimize import leastsq
+        res=leastsq(self._errfunc, self.guess, full_output=1)
+
+        pars, pcov0, infodict, errmsg, ier = res
+        if ier == 0:
+            # wrong args, this is a bug
+            raise ValueError(errmsg)
+
+        numiter = infodict['nfev']
+        pcov=None
+        perr=None
+
+        if pcov0 is not None:
+            pcov = self._scale_leastsq_cov(pars, pcov0)
+
+            d=numpy.diag(pcov)
+            w,=numpy.where(d < 0)
+
+            if w.size == 0:
+                # only do if non negative
+                perr = numpy.sqrt(d)
+        
+        self._result={'pars':pars, 'pcov':pcov, 'perr':perr}
+
+
+    def _set_guess(self):
+        c1, c1_err, m1, m1_err, covar = fitline(self.shear_true[:,0],
+                                                self.shear_diff[:,0])
+        c2, c2_err, m2, m2_err, covar = fitline(self.shear_true[:,1],
+                                                self.shear_diff[:,1])
+
+        m = 0.5*(m1 + m2)
+
+        self.guess = numpy.array([m, c1, c2])
+
+    def eval_pars(self, pars):
+        """
+        [m, c1, c2]
+        """
+        return pars[0]*self.shear_true + pars[1:1+2]
+
+    def _errfunc(self, pars):
+        """
+        [m, c1, c2]
+        """
+
+        model = self.eval_pars(pars)
+        diff = (model-self.shear_diff)/self.shear_err
+        return diff.ravel()
+
+    def _scale_leastsq_cov(self, pars, pcov):
+        """
+        Scale the covariance matrix returned from leastsq; this will
+        recover the covariance of the parameters in the right units.
+        """
+
+        # is total size right here?
+        dof = (self.shear_diff.size-len(pars))
+        s_sq = (self._errfunc(pars)**2).sum()/dof
+        return pcov * s_sq 
+
+    def __call__(self, x):
+        """
+        pars order same as for numpy.poly1d
+        """
+        return self.eval_pars(self._result['pars'])
+
+    def __repr__(self):
+        if hasattr(self,'_result'):
+            pars=self._result['pars']
+            perr=self._result['perr']
+
+            if perr is not None:
+                rep = """(d1,d2) = m*(s1,s2) + (c1,c2)
+    m:  %g +/- %g
+    c1: %g +/- %g
+    c2: %g +/- %g""" % (pars[0],perr[0],pars[1],perr[1],pars[2],perr[2])
+
+            else:
+                rep = """(d1,d2) = m*(s1,s2) + (c1,c2)
+    m:  %g +/- None
+    c1: %g +/- None
+    c2: %g +/- None""" % (pars[0],pars[1],pars[2])
+
+        else:
+            rep=""
+
+        return rep
+
 
 
 # quick line fit pulled from great3-public code
@@ -87,10 +186,16 @@ def fitline(xarr, yarr):
 
 def calc_q(fits):
 
-    m1=fits['m'][0,0]
-    m2=fits['m'][0,1]
-    c1=fits['c'][0,0]
-    c2=fits['c'][0,1]
+    if 'c1' in fits.dtype.names:
+        m1=fits['m'][0]
+        m2=fits['m'][0]
+        c1=fits['c1'][0]
+        c2=fits['c2'][0]
+    else:
+        m1=fits['m'][0,0]
+        m2=fits['m'][0,1]
+        c1=fits['c'][0,0]
+        c2=fits['c'][0,1]
 
     sigma2_min = SIGMA2_MIN_CONSTANT_GROUND 
     norm = NORMALIZATION_CONSTANT_GROUND 
@@ -317,25 +422,55 @@ def print_m_c(sindex, m, merr, c, cerr, r=None):
     else:
         print(fmt % (m, merr, c, cerr))
 
-def fit_m_c(data, doprint=True):
+def fit_m_c(data, doprint=True, onem=False):
     import fitting
     import mcmc
     import esutil as eu
 
     strue = data['shear_true']
     sdiff = data['shear'] - data['shear_true']
-    #serr = data['shear_err']
+    serr  = data['shear_err']
 
     m = numpy.zeros(2)
     merr = numpy.zeros(2)
     c = numpy.zeros(2)
     cerr = numpy.zeros(2)
 
+
+    if onem:
+        fits=numpy.zeros(1, dtype=[('m','f8'),
+                                   ('merr','f8'),
+                                   ('c1','f8'),
+                                   ('c1err','f8'),
+                                   ('c2','f8'),
+                                   ('c2err','f8')])
+
+
+        fitter=MCFitter(strue, sdiff, serr)
+        fitter.dofit()
+        res=fitter.get_result()
+
+        pars=res['pars']
+        perr=res['perr']
+        fits['m'] = pars[0]
+        fits['c1'] = pars[1]
+        fits['c2'] = pars[2]
+        fits['merr'] = perr[0]
+        fits['c1err'] = perr[1]
+        fits['c2err'] = perr[2]
+
+        fmt = '  m: %.3e +/- %.3e c1: %.3e +/- %.3e c2: %.3e +/- %.3e'
+        print(fmt % (pars[0],perr[0],
+                     pars[1],perr[1],
+                     pars[2],perr[2]))
+        return fits
+
     fits=numpy.zeros(1, dtype=[('m','f8',2),
                                ('merr','f8',2),
                                ('c','f8',2),
                                ('cerr','f8',2),
                                ('r','f8',2)])
+
     for i in [0,1]:
         w,=numpy.where(strue[:,i] != 0.0)
         if w.size == 0:
@@ -345,7 +480,7 @@ def fit_m_c(data, doprint=True):
                              calc_err=True)
             print("s%d: %.3e +/- %.3e" % (i+1,m,e))
         else:
-            if True:
+            if False:
                 c, c_err, m, m_err, covar = fitline(strue[:,i], sdiff[:,i])
                 r = covar/numpy.sqrt(m_err**2 * c_err**2)
                 fits['m'][0,i] = m
@@ -568,7 +703,7 @@ def main():
 
 
     # if only doing the fit, and not bootstrapping
-    if args.fit_only and not args.boot and not args.jack:
+    if args.fit_only:
         means = read_means(args)
     else:
 
@@ -577,23 +712,16 @@ def main():
         else:
             data=read_data(conf, args.run)
 
-        if not args.jack:
-            means = get_averages(conf, data)
-            write_means(args, means)
-
-    if args.jack:
-        fits, means = fit_m_c_jack_byobj(conf, data, args.njack)
+        means = get_averages(conf, data)
         write_means(args, means)
-    else:
-        fits=fit_m_c(means)
 
-        fits = fit_m_c_jack_by_field(fits, means)
-
-        if args.boot:
-            fits = fit_m_c_boot(fits, conf, data, args.nboot)
+    fits=fit_m_c(means, onem=args.onem)
+    Q=calc_q(fits)
 
     write_fits(args, fits)
 
-    doplot(args, means, fits)
+    if not args.onem:
+        # need to adapt
+        doplot(args, means, fits)
 
 main()
