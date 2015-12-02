@@ -64,16 +64,16 @@ model_pars:
       type: "gmixnd"
 
       # ngauss=20 and logT range [-7,2]
-      file: "${REREDUX_OUTPUTS_DIR}/max-v05d02/fitprior/max-v05d02-fitprior-log_T.fits"
+      file: "${REREDUX_OUTPUTS_DIR}/max-v05d01/fitprior/max-v05d01-fitprior-log_T.fits"
 
-      cov_factor: 1.1
+      cov_factor: 1.44
 
     counts:
       type: "gmixnd"
 
-      file: "${REREDUX_OUTPUTS_DIR}/max-v05d02/fitprior/max-v05d02-fitprior-log_F.fits"
+      file: "${REREDUX_OUTPUTS_DIR}/max-v05d01/fitprior/max-v05d01-fitprior-log_F.fits"
 
-      cov_factor: 1.1
+      cov_factor: 1.44
 
 
     cen:

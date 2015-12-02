@@ -228,6 +228,17 @@ v05deep larger deep sim, 1,000,000
     - subtracting sheared correlated noise
     - using 4 realizations
 
+    - had messed up priors from gauss run
+      m1: 1.127e-01 +/- 1.009e-02 c1: -3.041e-04 +/- 2.187e-04
+      m2: 9.170e-02 +/- 9.300e-03 c2: -4.193e-05 +/- 2.197e-04
+      Q: 33.8929
+
+- mcal-v10s13
+    - back to 1 realization
+      m1: 1.018e-02 +/- 9.133e-03 c1: -2.628e-04 +/- 1.978e-04
+      m2: 5.487e-03 +/- 8.698e-03 c2: -7.299e-05 +/- 2.053e-04
+
+
 
 - mcal-v10s01d
     - redo fit to shallow but with a little extra noise added
