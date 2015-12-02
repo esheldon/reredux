@@ -7,7 +7,8 @@ scripts=['reredux-make-batch',
          'reredux-average',
          'reredux-vary-deepsize',
          'reredux-fit-prior',
-         'reredux-fit-m-c']
+         'reredux-fit-m-c',
+         'reredux-fit-m-c-nofix']
 
 scripts=[os.path.join('bin',s) for s in scripts]
 
