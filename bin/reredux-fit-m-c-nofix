@@ -11,9 +11,9 @@ parser = ArgumentParser()
 
 parser.add_argument('run', help='run to use in fit')
 
-parser.add_argument('--onem', action='store_true',help="fit a single m instead of m1,m2")
-
 parser.add_argument('--show',action='store_true',help='show plot')
+parser.add_argument('--weights',action='store_true',help='use weights')
+
 parser.add_argument('--yrange', help="yrange of plot")
 parser.add_argument('--xrange', help="xrange of plot")
 
@@ -208,9 +208,6 @@ def calc_q(fits):
                        + sigma2_min)
 
     Q = num/denom
-    
-    print("  Q: %g" % Q)
-
     return Q
 
 def doplot(args, data, fits):
@@ -301,7 +298,7 @@ def read_cached_data(conf, run):
     tfile=get_cache_file(run)
     if os.path.exists(tfile):
         print("reading cache:",tfile)
-        data=fitsio.read(tfile)
+        data=fitsio.read(tfile)#, rows=numpy.arange(1000000))
     else:
         data=read_data(conf,run)
         print("writing cache:",tfile)
@@ -321,6 +318,11 @@ def read_data(conf, run):
         'shear_index',
         'flags'
     ]
+
+    if conf['use_weights']:
+        columns += ['%s_mcal_s2n_r' % model]
+        #columns += ['%s_mcal_g_cov' % model]
+
     print("reading columns:",columns)
     data=reredux.files.read_collated(run, columns=columns)
 
@@ -359,6 +361,7 @@ def print_shear(ind, num, shear, shear_err):
 
 def get_arrays(conf, data):
 
+    print("getting arrays")
     model=conf['model_pars'].keys()[0]
 
     gfield = '%s_mcal_g' % model
@@ -370,11 +373,8 @@ def get_arrays(conf, data):
 
     g = data[gfield]
     gpsf = data[gpsf_field]
-
-
-    R = data[Rfield].copy()
-
-    Rpsf = data[Rpsf_field].copy()
+    R = data[Rfield]
+    Rpsf = data[Rpsf_field]
 
     return g, gpsf, R, Rpsf
 
@@ -407,6 +407,68 @@ def get_averages(conf, data, show_progress=True):
         shear     = numpy.dot(Rinv, gmean-psf_corr)
         shear_err = g[w].std(axis=0)/numpy.sqrt(w.size)
         shear_err = numpy.dot(Rinv, shear_err)
+
+        means['shear'][i] = shear
+        means['shear_err'][i] = shear_err
+        means['shear_true'][i] = shear_true
+
+    return means
+
+
+def get_averages_weighted(conf, data, show_progress=True):
+
+    soft=20.0
+
+    sconf=conf['sconf']
+    shears = sconf['shear']['shears']
+
+    h,rev = eu.stat.histogram(data['shear_index'], rev=True)
+    nind = h.size
+
+    g, gpsf, R, Rpsf = get_arrays(conf, data)
+
+    means=get_mean_struct(nind)
+
+    model=conf['model_pars'].keys()[0]
+    wfield = '%s_mcal_s2n_r' % model
+
+    Rmean = numpy.zeros( (2,2) )
+    psf_corr = numpy.zeros( 2 )
+    gmean = numpy.zeros( 2 )
+    gerr  = numpy.zeros( 2 )
+
+    for i in xrange(nind):
+        if show_progress:
+            print("shear index:",i)
+
+        w=rev[ rev[i]:rev[i+1] ]
+
+        s2n = data[wfield][w]
+        wts = 1.0/(1.0 + (soft/s2n)**2 )
+
+        wts2=wts**2
+        wsum=wts.sum()
+
+        shear_true = shears[i]
+
+        for ii in xrange(2):
+            gmean[ii] = (g[w,ii]*wts).sum()/wsum
+            gerr2 = ( wts2 * (g[w,ii]-gmean[ii])**2 ).sum()
+            gerr[ii] = numpy.sqrt(gerr2)
+            psf_corr[ii]  = (gpsf[w,ii]*Rpsf[w,ii]*wts).sum()/wsum
+
+            for jj in xrange(ii,2):
+                Rmean[ii,jj] = (R[w,ii,jj]*wts).sum()/wsum
+                if jj != ii:
+                    Rmean[jj,ii] = Rmean[ii,jj]
+
+
+        Rinv = numpy.linalg.inv(Rmean)
+
+        shear     = numpy.dot(Rinv, gmean-psf_corr)
+        shear_err = numpy.dot(Rinv, gerr)
+        #shear_err = g[w].std(axis=0)/numpy.sqrt(w.size)
+        #shear_err = numpy.dot(Rinv, shear_err)
 
         means['shear'][i] = shear
         means['shear_err'][i] = shear_err
@@ -694,10 +756,22 @@ def fit_m_c_jack_by_field(fits, means):
     return newfits
 
 def main():
+
     args = parser.parse_args()
+    av=reredux.averaging.AveragerSubn(args.run,
+                                      fit_only=args.fit_only,
+                                      use_weights=args.weights,
+                                      use_cache=args.cache)
+    av.go()
+    av.doplot(args)
+
+    return
+
 
     conf=reredux.files.read_config(args.run)
     sconf=reredux.files.read_egret_config(conf['reredux_config'])
+
+    conf['use_weights'] = args.weights
 
     conf['sconf'] = sconf
 
@@ -712,16 +786,24 @@ def main():
         else:
             data=read_data(conf, args.run)
 
-        means = get_averages(conf, data)
+        if args.weights:
+            means = get_averages_weighted(conf, data)
+        else:
+            means = get_averages(conf, data)
+
         write_means(args, means)
 
-    fits=fit_m_c(means, onem=args.onem)
+    fits=fit_m_c(means)
     Q=calc_q(fits)
+    print("  Q: %d" % Q)
 
-    write_fits(args, fits)
+    print("one m")
+    fits_onem=fit_m_c(means, onem=True)
+    #Q_onem=calc_q(fits)
+    #print("  Q: %d" % Q)
 
-    if not args.onem:
-        # need to adapt
-        doplot(args, means, fits)
+    #write_fits(args, fits)
+
+    doplot(args, means, fits)
 
 main()
