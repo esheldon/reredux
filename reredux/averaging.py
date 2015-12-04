@@ -8,12 +8,17 @@ import esutil as eu
 
 from . import files
 
+S2N_SOFT=10.0
+
 class AveragerBase(dict):
     def __init__(self, run, fit_only=False, use_weights=False, use_cache=False):
         self['run'] = run
         self['use_weights'] = use_weights
         self['use_cache'] = use_cache
         self['fit_only'] = fit_only
+
+        if self['use_weights']:
+            print("Using weights")
 
         conf=files.read_config(run)
         sconf=files.read_egret_config(conf['reredux_config'])
@@ -37,11 +42,10 @@ class AveragerBase(dict):
         self.Q=calc_q(self.fits)
         print("  Q: %d" % self.Q)
 
-
-        self._write_fits(self.fits)
-
         self.fits_onem = fit_m_c(self.means, onem=True)
         self.Q_onem=calc_q(self.fits_onem)
+
+        self._write_fits(self.fits)
 
     def doplot(self,args):
         import biggles
@@ -113,6 +117,12 @@ class AveragerBase(dict):
         if args.show:
             tab.show(width=1000, height=1000)
 
+    def _get_averages(self, show_progress=True):
+        if self['use_weights']:
+            return self._get_averages_weighted(show_progress=show_progress)
+        else:
+            return self._get_averages_noweight(show_progress=show_progress)
+
     def _load_data(self):
         if self['use_cache']:
             data = self._read_cached_data()
@@ -165,13 +175,11 @@ class AveragerBase(dict):
         fitsio.write(fname, fits, clobber=True)
 
 
-class AveragerSubn(AveragerBase):
-    def _get_averages(self, show_progress=True):
-        if self['use_weights']:
-            return self._get_averages_weighted(show_progress=show_progress)
-        else:
-            return self._get_averages_noweight(show_progress=show_progress)
-
+class AveragerAddn(AveragerBase):
+    """
+    we added a correlated noise term to cancel that in the
+    measurement
+    """
     def _get_averages_noweight(self, show_progress=True):
 
         data=self.data
@@ -212,7 +220,6 @@ class AveragerSubn(AveragerBase):
     def _get_averages_weighted(self, show_progress=True):
 
         data=self.data
-        soft=20.0
 
         shears = self.shears
 
@@ -238,7 +245,7 @@ class AveragerSubn(AveragerBase):
             w=rev[ rev[i]:rev[i+1] ]
 
             s2n = data[wfield][w]
-            wts = 1.0/(1.0 + (soft/s2n)**2 )
+            wts = 1.0/(1.0 + (S2N_SOFT/s2n)**2 )
 
             wts2=wts**2
             wsum=wts.sum()
@@ -295,6 +302,52 @@ class AveragerSubn(AveragerBase):
             '%s_mcal_gpsf' % model,
             '%s_mcal_R' % model,
             '%s_mcal_Rpsf' % model,
+            'shear_index',
+            'flags'
+        ]
+
+        if self['use_weights']:
+            columns += ['%s_mcal_s2n_r' % model]
+
+        return columns
+
+
+class AveragerSimn(AveragerAddn):
+    def _get_arrays(self):
+
+        data=self.data
+
+        print("getting arrays")
+        model=self['model']
+
+        gfield = '%s_mcal_g' % model
+        gpsf_field = '%s_mcal_gpsf' % model
+
+        Rfield = '%s_mcal_R' % model
+        Rpsf_field = '%s_mcal_Rpsf' % model
+
+        Rnoise_field = '%s_mcal_Rnoise' % model
+        Rpsf_noise_field = '%s_mcal_Rpsf_noise' % model
+
+        g = data[gfield]
+        gpsf = data[gpsf_field]
+        R = data[Rfield].copy()
+        Rpsf = data[Rpsf_field].copy()
+
+        R -= data[Rnoise_field]
+        Rpsf -= data[Rpsf_noise_field]
+
+        return g, gpsf, R, Rpsf
+
+    def _get_columns(self):
+        model=self['model']
+        columns=[
+            '%s_mcal_g' % model,
+            '%s_mcal_gpsf' % model,
+            '%s_mcal_R' % model,
+            '%s_mcal_Rpsf' % model,
+            '%s_mcal_Rnoise' % model,
+            '%s_mcal_Rpsf_noise' % model,
             'shear_index',
             'flags'
         ]

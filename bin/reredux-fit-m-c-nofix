@@ -758,7 +758,7 @@ def fit_m_c_jack_by_field(fits, means):
 def main():
 
     args = parser.parse_args()
-    av=reredux.averaging.AveragerSubn(args.run,
+    av=reredux.averaging.AveragerAddn(args.run,
                                       fit_only=args.fit_only,
                                       use_weights=args.weights,
                                       use_cache=args.cache)
