@@ -11,8 +11,6 @@ parser = ArgumentParser()
 
 parser.add_argument('run', help='run to use in fit')
 
-parser.add_argument('--onem', action='store_true',help="fit a single m instead of m1,m2")
-
 parser.add_argument('--show',action='store_true',help='show plot')
 parser.add_argument('--weights',action='store_true',help='use weights')
 
@@ -210,9 +208,6 @@ def calc_q(fits):
                        + sigma2_min)
 
     Q = num/denom
-    
-    print("  Q: %g" % Q)
-
     return Q
 
 def doplot(args, data, fits):
@@ -364,7 +359,7 @@ def print_shear(ind, num, shear, shear_err):
     print(mess % tup)
 
 
-def get_arrays(conf, data, weights=False):
+def get_arrays(conf, data):
 
     print("getting arrays")
     model=conf['model_pars'].keys()[0]
@@ -378,41 +373,10 @@ def get_arrays(conf, data, weights=False):
 
     g = data[gfield]
     gpsf = data[gpsf_field]
+    R = data[Rfield]
+    Rpsf = data[Rpsf_field]
 
-
-    R = data[Rfield].copy()
-
-    Rpsf = data[Rpsf_field].copy()
-
-    if weights:
-        # 1.0/( 1.0 + (soft/s2n)^2 )
-        soft=20.0
-        print("getting weights")
-        wfield = '%s_mcal_s2n_r' % model
-        wts = data[wfield]
-
-        numpy.square(wts, wts)
-        numpy.divide(soft**2, wts, wts)
-        wts += 1.0
-
-        numpy.divide(1.0, wts, wts)
-
-        '''
-        Rm = R[:,0,0].copy()
-        Rm += R[:,1,1]
-        Rm *= 0.5
-        hd=eu.stat.histogram(Rm, nbin=100, more=True)
-        w,=numpy.where(hd['hist'] > 0)
-
-        wts=numpy.interp(Rm,
-                         hd['center'][w],
-                         hd['hist'][w],
-                         left=0.0,
-                         right=0.0)
-        '''
-        return g, gpsf, R, Rpsf, wts
-    else:
-        return g, gpsf, R, Rpsf
+    return g, gpsf, R, Rpsf
 
 def get_averages(conf, data, show_progress=True):
 
@@ -466,7 +430,6 @@ def get_averages_weighted(conf, data, show_progress=True):
     means=get_mean_struct(nind)
 
     model=conf['model_pars'].keys()[0]
-    #cov_field='%s_mcal_g_cov' % model
     wfield = '%s_mcal_s2n_r' % model
 
     Rmean = numpy.zeros( (2,2) )
@@ -480,10 +443,6 @@ def get_averages_weighted(conf, data, show_progress=True):
 
         w=rev[ rev[i]:rev[i+1] ]
 
-        #wts = weights[w]
-        #wts = 1.0/(0.25**2
-        #           + data[cov_field][w,0,0]
-        #           + data[cov_field][w,1,1])
         s2n = data[wfield][w]
         wts = 1.0/(1.0 + (soft/s2n)**2 )
 
@@ -797,7 +756,17 @@ def fit_m_c_jack_by_field(fits, means):
     return newfits
 
 def main():
+
     args = parser.parse_args()
+    av=reredux.averaging.AveragerSubn(args.run,
+                                      fit_only=args.fit_only,
+                                      use_weights=args.weights,
+                                      use_cache=args.cache)
+    av.go()
+    av.doplot(args)
+
+    return
+
 
     conf=reredux.files.read_config(args.run)
     sconf=reredux.files.read_egret_config(conf['reredux_config'])
@@ -824,13 +793,17 @@ def main():
 
         write_means(args, means)
 
-    fits=fit_m_c(means, onem=args.onem)
+    fits=fit_m_c(means)
     Q=calc_q(fits)
+    print("  Q: %d" % Q)
 
-    write_fits(args, fits)
+    print("one m")
+    fits_onem=fit_m_c(means, onem=True)
+    #Q_onem=calc_q(fits)
+    #print("  Q: %d" % Q)
 
-    if not args.onem:
-        # need to adapt
-        doplot(args, means, fits)
+    #write_fits(args, fits)
+
+    doplot(args, means, fits)
 
 main()
