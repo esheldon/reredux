@@ -2,15 +2,16 @@ from __future__ import print_function
 
 import os
 import numpy
+from numpy import arange
 
 import fitsio
 import esutil as eu
 
 from . import files
 
-S2N_SOFT=10.0
+S2N_SOFT=20.0
 
-class AveragerBase(dict):
+class Averager(dict):
     def __init__(self, run, fit_only=False, use_weights=False, use_cache=False):
         self['run'] = run
         self['use_weights'] = use_weights
@@ -117,69 +118,6 @@ class AveragerBase(dict):
         if args.show:
             tab.show(width=1000, height=1000)
 
-    def _get_averages(self, show_progress=True):
-        if self['use_weights']:
-            return self._get_averages_weighted(show_progress=show_progress)
-        else:
-            return self._get_averages_noweight(show_progress=show_progress)
-
-    def _load_data(self):
-        if self['use_cache']:
-            data = self._read_cached_data()
-        else:
-            data = self._read_data()
-        self.data=data
-
-    def _read_cached_data(self):
-        tfile=get_cache_file(self['run'])
-        if os.path.exists(tfile):
-            print("reading cache:",tfile)
-            data=fitsio.read(tfile)#, rows=numpy.arange(1000000))
-        else:
-            data=self._read_data()
-            print("writing cache:",tfile)
-            fitsio.write(tfile, data, clobber=True)
-
-        return data
-
-
-    def _read_data(self):
-
-        model=self['model']
-
-        columns=self._get_columns()
-
-        print("reading columns:",columns)
-        data=files.read_collated(self['run'], columns=columns)
-
-        w,=numpy.where(data['flags']==0)
-        data=data[w]
-
-        return data
-
-    def _read_means(self):
-        return files.read_fit_file(self['run'], extra='shear-means')
-
-    def _write_means(self):
-        fname=files.get_fit_file(self['run'], extra='shear-means')
-        eu.ostools.makedirs_fromfile(fname)
-
-        print("writing:",fname)
-        fitsio.write(fname, self.means, clobber=True)
-
-    def _write_fits(self, fits):
-        fname=files.get_fit_file(self['run'], extra='fit-m-c')
-
-        eu.ostools.makedirs_fromfile(fname)
-        print("writing fit data to file:",fname)
-        fitsio.write(fname, fits, clobber=True)
-
-
-class AveragerAddn(AveragerBase):
-    """
-    we added a correlated noise term to cancel that in the
-    measurement
-    """
     def _get_averages_noweight(self, show_progress=True):
 
         data=self.data
@@ -245,7 +183,8 @@ class AveragerAddn(AveragerBase):
             w=rev[ rev[i]:rev[i+1] ]
 
             s2n = data[wfield][w]
-            wts = 1.0/(1.0 + (S2N_SOFT/s2n)**2 )
+            wts = self._get_s2n_weights(s2n)
+            #wts = 1.0/(1.0 + (S2N_SOFT/s2n)**2 )
 
             wts2=wts**2
             wsum=wts.sum()
@@ -312,7 +251,180 @@ class AveragerAddn(AveragerBase):
         return columns
 
 
-class AveragerSimn(AveragerAddn):
+
+    def _get_s2n_weights(s2n):
+        wts = 1.0/(1.0 + (S2N_SOFT/s2n)**2 )
+        return wts
+
+    def _get_averages(self, show_progress=True):
+        if self['use_weights']:
+            return self._get_averages_weighted(show_progress=show_progress)
+        else:
+            return self._get_averages_noweight(show_progress=show_progress)
+
+    def _load_data(self):
+        if self['use_cache']:
+            data = self._read_cached_data()
+        else:
+            data = self._read_data()
+        self.data=data
+
+    def _read_cached_data(self):
+        tfile=get_cache_file(self['run'])
+        if os.path.exists(tfile):
+            print("reading cache:",tfile)
+            data=fitsio.read(tfile)#, rows=arange(1000000))
+        else:
+            data=self._read_data()
+            print("writing cache:",tfile)
+            fitsio.write(tfile, data, clobber=True)
+
+        return data
+
+
+    def _read_data(self):
+
+        model=self['model']
+
+        columns=self._get_columns()
+
+        print("reading columns:",columns)
+        data=files.read_collated(self['run'], columns=columns)#, rows=arange(1000000))
+
+        w,=numpy.where(data['flags']==0)
+        print("    keeping %d/%d" % (w.size,data.size))
+        data=data[w]
+
+        return data
+
+    def _read_means(self):
+        return files.read_fit_file(self['run'], extra='shear-means')
+
+    def _write_means(self):
+        fname=files.get_fit_file(self['run'], extra='shear-means')
+        eu.ostools.makedirs_fromfile(fname)
+
+        print("writing:",fname)
+        fitsio.write(fname, self.means, clobber=True)
+
+    def _write_fits(self, fits):
+        fname=files.get_fit_file(self['run'], extra='fit-m-c')
+
+        eu.ostools.makedirs_fromfile(fname)
+        print("writing fit data to file:",fname)
+        fitsio.write(fname, fits, clobber=True)
+
+
+class AveragerRmean(Averager):
+    def _get_averages_noweight(self, show_progress=True):
+
+        data=self.data
+
+        shears = self.shears
+
+        h,rev = eu.stat.histogram(data['shear_index'], rev=True)
+        nind = h.size
+
+        g, gpsf, R, Rpsf = self._get_arrays()
+
+        Rmean = R.mean(axis=0)
+        Rpsf_mean = Rpsf.mean(axis=0)
+        Rinv = numpy.linalg.inv(Rmean)
+
+        means=get_mean_struct(nind)
+
+        for i in xrange(nind):
+            if show_progress:
+                print("shear index:",i)
+
+            w=rev[ rev[i]:rev[i+1] ]
+
+            shear_true = shears[i]
+
+            psf_corr  = (gpsf[w]).mean(axis=0)*Rpsf_mean
+
+            gmean     = g[w].mean(axis=0)
+            shear     = numpy.dot(Rinv, gmean-psf_corr)
+            shear_err = g[w].std(axis=0)/numpy.sqrt(w.size)
+            shear_err = numpy.dot(Rinv, shear_err)
+
+            means['shear'][i] = shear
+            means['shear_err'][i] = shear_err
+            means['shear_true'][i] = shear_true
+
+        return means
+
+    def _get_averages_weighted(self, show_progress=True):
+
+        data=self.data
+
+        shears = self.shears
+
+        h,rev = eu.stat.histogram(data['shear_index'], rev=True)
+        nind = h.size
+
+        g, gpsf, R, Rpsf = self._get_arrays()
+
+        means=get_mean_struct(nind)
+
+        model=self['model_pars'].keys()[0]
+        wfield = '%s_mcal_s2n_r' % model
+
+        Rmean = numpy.zeros( (2,2) )
+        psf_corr = numpy.zeros( 2 )
+        gmean = numpy.zeros( 2 )
+        gerr  = numpy.zeros( 2 )
+
+        s2n = data[wfield]
+        wts = self._get_s2n_weights(s2n)
+        wsum = wts.sum()
+
+        for ii in xrange(2):
+            Rpsf_mean[ii] = (Rpsf[:,ii]*wts).sum()/wsum
+            for jj in xrange(ii,2):
+                Rmean[ii,jj] = (R[:,ii,jj]*wts).sum()/wsum
+                if jj != ii:
+                    Rmean[jj,ii] = Rmean[ii,jj]
+
+        Rinv = numpy.linalg.inv(Rmean)
+
+        for i in xrange(nind):
+            if show_progress:
+                print("shear index:",i)
+
+            w=rev[ rev[i]:rev[i+1] ]
+
+            s2n = data[wfield][w]
+            wts = self._get_s2n_weights(s2n)
+
+            wts2=wts**2
+            wsum=wts.sum()
+
+            shear_true = shears[i]
+
+            for ii in xrange(2):
+                gmean[ii] = (g[w,ii]*wts).sum()/wsum
+                gerr2 = ( wts2 * (g[w,ii]-gmean[ii])**2 ).sum()
+                gerr[ii] = numpy.sqrt(gerr2)
+                psf_corr[ii]  = Rpsf_mean*(gpsf[w,ii]*wts).sum()/wsum
+
+                for jj in xrange(ii,2):
+                    Rmean[ii,jj] = (R[w,ii,jj]*wts).sum()/wsum
+                    if jj != ii:
+                        Rmean[jj,ii] = Rmean[ii,jj]
+
+            shear     = numpy.dot(Rinv, gmean-psf_corr)
+            shear_err = numpy.dot(Rinv, gerr)
+
+            means['shear'][i] = shear
+            means['shear_err'][i] = shear_err
+            means['shear_true'][i] = shear_true
+
+        return means
+
+
+
+class AveragerSimn(Averager):
     def _get_arrays(self):
 
         data=self.data
@@ -356,6 +468,106 @@ class AveragerSimn(AveragerAddn):
             columns += ['%s_mcal_s2n_r' % model]
 
         return columns
+
+class AveragerSimnRmean(Averager):
+    def _get_arrays(self):
+
+        print("subtracting Rnoise_mean")
+        data=self.data
+
+        print("getting arrays")
+        model=self['model']
+
+        gfield = '%s_mcal_g' % model
+        gpsf_field = '%s_mcal_gpsf' % model
+
+        Rfield = '%s_mcal_R' % model
+        Rpsf_field = '%s_mcal_Rpsf' % model
+
+        Rnoise_field = '%s_mcal_Rnoise' % model
+        Rpsf_noise_field = '%s_mcal_Rpsf_noise' % model
+
+        g = data[gfield]
+        gpsf = data[gpsf_field]
+        R = data[Rfield].copy()
+        Rpsf = data[Rpsf_field].copy()
+
+        R -= data[Rnoise_field].mean(axis=0)
+        Rpsf -= data[Rpsf_noise_field].mean(axis=0)
+
+        return g, gpsf, R, Rpsf
+
+
+class AveragerRef(Averager):
+    """
+    we added a correlated noise term to cancel that in the
+    measurement
+    """
+    def __init__(self, run, refrun, **kw):
+        self['refrun']=refrun
+        super(AveragerRef,self).__init__(run, **kw)
+
+        if self['use_weights']:
+            raise RuntimeError("weights don't work when using "
+                               "a reference set")
+
+    def _load_data(self):
+
+        data= files.read_collated(self['refrun'])
+        w,=numpy.where(data['flags']==0)
+        print("    keeping %d/%d ref data" % (w.size,data.size))
+
+        data=data[w]
+
+        self.refdata=data
+
+        super(AveragerRef,self)._load_data()
+
+    def _get_arrays(self):
+
+        g, gpsf, R, Rpsf = super(AveragerRef,self)._get_arrays()
+
+        model=self['model']
+
+        Rfield = '%s_mcal_R' % model
+        Rpsf_field = '%s_mcal_Rpsf' % model
+        refR = self.refdata[Rfield].mean(axis=0)
+        refRpsf = self.refdata[Rpsf_field].mean(axis=0)
+
+        for i in xrange(2):
+            Rpsf[:,i] = refRpsf[i]
+            for j in xrange(2):
+                R[:,i,j] = refR[i,j]
+
+        return g, gpsf, R, Rpsf
+
+
+class AveragerRefFix(AveragerRef):
+    """
+    we added a correlated noise term to cancel that in the
+    measurement
+    """
+
+    def _get_arrays(self):
+
+        # note this is calling the parent of the parent
+        g, gpsf, R, Rpsf = super(AveragerRef,self)._get_arrays()
+
+        print("    calculating R fix")
+        model=self['model']
+        Rfield = '%s_mcal_R' % model
+        Rpsf_field = '%s_mcal_Rpsf' % model
+        refR = self.refdata[Rfield]
+        refRpsf = self.refdata[Rpsf_field]
+
+        Rcrud = R.mean(axis=0) - refR.mean(axis=0)
+        Rpsf_crud = Rpsf.mean(axis=0) - refRpsf.mean(axis=0)
+
+        R -= Rcrud
+        Rpsf -= Rpsf_crud
+        return g, gpsf, R, Rpsf
+
+
 
 def fit_m_c(data, doprint=True, onem=False):
     import fitting

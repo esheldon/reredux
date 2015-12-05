@@ -11,15 +11,23 @@ parser = ArgumentParser()
 parser.add_argument('run', help='run to use in fit')
 parser.add_argument('refrun',help='run used for correction')
 
+parser.add_argument('--fix',action='store_true',
+                    help='fix R in the mean')
+
 parser.add_argument('--show',action='store_true',help='show plot')
 parser.add_argument('--yrange', help="yrange of plot")
+parser.add_argument('--xrange', help="xrange of plot")
 
-parser.add_argument('--boot',action='store_true',help='bootstrap fits')
-parser.add_argument('--nboot',type=int,
-                    default=100,help='number of bootstraps')
+#parser.add_argument('--boot',action='store_true',help='bootstrap fits')
+#parser.add_argument('--nboot',type=int,
+#                    default=100,help='number of bootstraps')
 
 parser.add_argument('--fit-only',action='store_true',
                     help='get the means from the written file')
+
+parser.add_argument('--cache',action='store_true',
+                    help=('cache the file subset locally; use the cache '
+                          'if available'))
 
 
 SIGMA2_MIN_CONSTANT_GROUND = 4.     # 2**2
@@ -309,6 +317,20 @@ def fit_m_c_boot(fits, conf, data, refdata, nboot):
     return newfits
 
 def main():
+    args = parser.parse_args()
+    if args.fix:
+        cls = reredux.averaging.AveragerRefFix
+    else:
+        cls = reredux.averaging.AveragerRef
+    av=cls(args.run,
+           args.refrun,
+           fit_only=args.fit_only,
+           use_cache=args.cache)
+    av.go()
+    av.doplot(args)
+
+    return
+
     args = parser.parse_args()
 
     conf=reredux.files.read_config(args.run)
