@@ -14,9 +14,9 @@ def get_data_dir(version):
     """
     basedir = get_reredux_basedir()
 
-    subdirs='work/data'
-
-    return os.path.join(basedir, version, subdirs)
+    #subdirs='work/data'
+    #return os.path.join(basedir, version, subdirs)
+    return os.path.join(basedir, version)
 
 def get_meds_file(version, fnum):
     """

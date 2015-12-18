@@ -360,9 +360,9 @@ command: |
     seed=%(seed)s
 
     # we need to make the scratch directory
-    tmpdir="$TMPDIR/ngmixit-$RANDOM"
-    mkdir -p $tmpdir
-    cd $tmpdir
+    #tmpdir="$TMPDIR/ngmixit-$RANDOM"
+    #mkdir -p $tmpdir
+    #cd $tmpdir
 
     python -u $(which ngmixit)         \\
             --seed ${seed}             \\
