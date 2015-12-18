@@ -4,7 +4,7 @@
 # turned off center finding
 reredux_config: "v12small"
 
-reredux_githash: ""
+reredux_githash: "a83fd291fc8142007aff55f7ae8fa11b34d12768"
 # simobs branch
 ngmix_githash: "03f95784f30499ec57b2d94b146fbc0a53f59b4b"
 # simobs branch
