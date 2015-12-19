@@ -2,14 +2,17 @@ import os
 import glob
 from distutils.core import setup
 
-scripts=['reredux-make-batch',
-         'reredux-collate',
-         'reredux-average',
-         'reredux-vary-deepsize',
-         'reredux-fit-prior',
-         'reredux-fit-m-c',
-         'reredux-fit-m-c-ref',
-         'reredux-fit-m-c-nofix']
+scripts=[
+    'reredux-make-batch',
+    'reredux-collate',
+    'reredux-average',
+    'reredux-vary-deepsize',
+    'reredux-fit-prior',
+    'reredux-fit-m-c',
+    'reredux-fit-m-c-ref',
+    'reredux-fit-m-c-nofix',
+    'reredux-fit-m-c-dt',
+]
 
 scripts=[os.path.join('bin',s) for s in scripts]
 

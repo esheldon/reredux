@@ -15,6 +15,9 @@ global_seed: 804
 fitter_type: "metacal-detrend-ngmix-boot"
 imageio_type: "meds-simp-sim"
 
+# this is approximate; we should keep it in the output files to average
+orig_noise: 0.0877
+
 # to reach 0.175, twice the default noise in the sims, which is ~0.0877
 extra_sim_noise: 0.152
 

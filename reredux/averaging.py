@@ -2,7 +2,7 @@ from __future__ import print_function
 
 import os
 import numpy
-from numpy import arange
+from numpy import arange, sqrt, array
 
 import fitsio
 import esutil as eu
@@ -28,7 +28,8 @@ class Averager(dict):
         self['sconf'] = sconf
 
         self['model'] = self['model_pars'].keys()[0]
-        self.shears = self['sconf']['shear']['shears']
+        #self.shears = self['sconf']['shear']['shears']
+        self.shears = self['sconf']['shearmaker']['shears']
 
         self._load_data()
 
@@ -423,6 +424,123 @@ class AveragerRmean(Averager):
         return means
 
 
+class AveragerDetrend(AveragerRmean):
+    def _get_Rnoise(self, weights=None, show=False):
+        import images
+        from numpy import newaxis
+
+        data=self.data
+
+        noise0 = sqrt(self['orig_noise']**2 + self['extra_sim_noise']**2)
+        print("noise0:",noise0)
+
+        target_noises = array( self['detrend_noises'] )
+        ndiff = target_noises - noise0
+        xvals = 2*noise0*ndiff
+
+        model=self['model']
+        dtR_field = '%s_mcal_dt_Rnoise' % model
+        if weights is not None:
+            wsum=weights.sum()
+            wna1=weights[:,newaxis]
+            wna2=weights[:,newaxis,newaxis]
+
+            Rdt = (data[dtR_field]*wna2).sum(axis=0)/wsum
+            #Rdt_psf = (data['mcal_dt_Rnoise_psf']*wna1).sum(axis=0)/wsum
+
+        else:
+            Rdt = data[dtR_field].mean(axis=0)
+            #Rdt_psf = data['mcal_dt_Rnoise_psf'].mean(axis=0)
+
+        A = numpy.zeros( (2,2) )
+        #Apsf = numpy.zeros(2)
+
+        p='%s (%.3g +/- %.3g) + (%.3g +/ %.3g) deltan'
+        for i in xrange(2):
+            """
+            res = fitline(xvals, Rdt_psf[:,i])
+            Apsf[i] = res['slope']
+
+            if show:
+                plot_line_fit(
+                    'Rnoise-detrend-Rpsf%d' % (i+1),
+                    xvals, Rdt_psf[:,i],res,
+                    r'$2 n \Delta n$',
+                    r'$\Delta R^{PSF}_%d$' % (i+1),
+                )
+            """
+
+            for j in xrange(2):
+                res = fitline(xvals, Rdt[:,i,j])
+                A[i,j] = res['slope']
+
+                n='A[%d,%d]' % (i+1,j+1)
+                s=res['slope']
+                serr=res['slope_err']
+                o=res['offset']
+                oerr=res['offset_err']
+                print(p % (n,o,oerr,s,serr))
+
+                if show:
+                    plot_line_fit(
+                        'Rnoise-detrend-R%d%d' % (i+1,j+1),
+                        xvals,
+                        Rdt[:,i,j],
+                        res,
+                        r'$2 n \Delta n$',
+                        r'$\Delta R_{%d,%d}$' % (i+1,j+1),
+                    )
+
+        Rnoise = A*noise0**2
+        #Rnoise_psf = Apsf*noise0**2 
+
+        #return Rnoise, Rnoise_psf
+        print("Rnoise")
+        images.imprint(Rnoise, fmt='%.3g')
+        return Rnoise
+
+    def _get_arrays(self):
+
+        data=self.data
+
+        print("getting arrays")
+        model=self['model']
+
+        gfield = '%s_mcal_g' % model
+        gpsf_field = '%s_mcal_gpsf' % model
+
+        Rfield = '%s_mcal_R' % model
+        Rpsf_field = '%s_mcal_Rpsf' % model
+
+
+        g = data[gfield]
+        gpsf = data[gpsf_field]
+        R = data[Rfield].copy()
+        Rpsf = data[Rpsf_field].copy()
+
+        Rnoise = self._get_Rnoise()
+        R -= Rnoise
+
+        return g, gpsf, R, Rpsf
+
+
+    def _get_columns(self):
+        model=self['model']
+        columns=[
+            '%s_mcal_g' % model,
+            '%s_mcal_gpsf' % model,
+            '%s_mcal_R' % model,
+            '%s_mcal_Rpsf' % model,
+            '%s_mcal_dt_Rnoise' % model,
+            'shear_index',
+            'flags'
+        ]
+
+        if self['use_weights']:
+            columns += ['%s_mcal_s2n_r' % model]
+
+        return columns
+
 
 class AveragerSimn(Averager):
     def _get_arrays(self):
@@ -469,7 +587,7 @@ class AveragerSimn(Averager):
 
         return columns
 
-class AveragerSimnRmean(Averager):
+class AveragerSimnRmean(AveragerSimn):
     def _get_arrays(self):
 
         print("subtracting Rnoise_mean")
@@ -619,18 +737,71 @@ def fit_m_c(data, doprint=True, onem=False):
 
     for i in [0,1]:
 
-        c, c_err, m, m_err, covar = fitline(strue[:,i], sdiff[:,i])
-        r = covar/numpy.sqrt(m_err**2 * c_err**2)
-        fits['m'][0,i] = m
-        fits['merr'][0,i] = m_err
-        fits['c'][0,i] = c
-        fits['cerr'][0,i] = c_err
+        #c, c_err, m, m_err, covar = fitline(strue[:,i], sdiff[:,i])
+        res = fitline(strue[:,i], sdiff[:,i])
+        r = res['cov']/numpy.sqrt(res['slope_err']**2 * res['offset_err']**2)
+        fits['m'][0,i] = res['slope']
+        fits['merr'][0,i] = res['slope_err']
+        fits['c'][0,i] = res['offset']
+        fits['cerr'][0,i] = res['offset_err']
         fits['r'][0,i] = r
 
         if doprint:
-            print_m_c(i+1, m,m_err,c,c_err, r=r)
+            print_m_c(i+1,
+                      res['slope'],
+                      res['slope_err'],
+                      res['offset'],
+                      res['offset_err'],
+                      r=r)
 
     return fits
+
+
+#def plot_line_fit(args, extra, x, y, res, xlabel, ylabel):
+def plot_line_fit(extra, x, y, res, xlabel, ylabel):
+    import biggles
+    plt=biggles.FramedPlot()
+
+    ymin=y.min()
+    ymax=y.max()
+    if ymin < 0:
+        yr = [1.1*ymin, 0.0]
+    else:
+        yr = [0, 1.1*ymax]
+
+    xr = [0.0, 1.1*x.max()]
+
+    plt.xrange=xr
+    plt.yrange=yr
+    plt.xlabel=xlabel
+    plt.ylabel=ylabel
+    plt.aspect_ratio=1
+
+    xfit = numpy.linspace(0, xr[1])
+    yfit = res['offset'] + res['slope']*xfit
+
+    pts = biggles.Points(x,y,type='filled circle')
+    c = biggles.Curve(xfit, yfit, color='blue')
+
+    alab=r'$slope = %.3g \pm %.3g' % (res['slope'],res['slope_err'])
+    blab=r'$offset = %.3g \pm %.3g' % (res['offset'],res['offset_err'])
+    alabel=biggles.PlotLabel(0.9, 0.9, alab, halign='right')
+    blabel=biggles.PlotLabel(0.9, 0.85, blab, halign='right')
+
+    plt.add(c, pts, alabel, blabel)
+
+    #plotfile=files.get_plot_url(args.run, extra)
+
+    #print("writing:",plotfile)
+    #eu.ostools.makedirs_fromfile(plotfile)
+    #plt.write_eps(plotfile)
+
+    #if args.show:
+    #    plt.show()
+    plt.show()
+
+
+
 
 SIGMA2_MIN_CONSTANT_GROUND = 4.     # 2**2
 NORMALIZATION_CONSTANT_SPACE = 1.232
@@ -708,7 +879,13 @@ def fitline(xarr, yarr):
 
     a_err = numpy.sqrt(var_a)
     b_err = numpy.sqrt(var_b)
-    return a, a_err, b, b_err, cov_ab
+    return {'offset':a,
+            'offset_err':a_err,
+            'slope':b,
+            'slope_err':b_err,
+            'cov':cov_ab}
+
+    #return a, a_err, b, b_err, cov_ab
 
 class MCFitter(object):
     """
@@ -753,14 +930,12 @@ class MCFitter(object):
 
 
     def _set_guess(self):
-        c1, c1_err, m1, m1_err, covar = fitline(self.shear_true[:,0],
-                                                self.shear_diff[:,0])
-        c2, c2_err, m2, m2_err, covar = fitline(self.shear_true[:,1],
-                                                self.shear_diff[:,1])
+        res1 = fitline(self.shear_true[:,0], self.shear_diff[:,0])
+        res2 = fitline(self.shear_true[:,1], self.shear_diff[:,1])
 
-        m = 0.5*(m1 + m2)
+        m = 0.5*(res1['slope'] + res2['slope'])
 
-        self.guess = numpy.array([m, c1, c2])
+        self.guess = numpy.array([m, res1['offset'], res2['offset']])
 
     def eval_pars(self, pars):
         """
