@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import os
+from pprint import pprint
 import numpy
 from numpy import arange, sqrt, array, zeros
 
@@ -12,11 +13,15 @@ from . import files
 S2N_SOFT=20.0
 
 class Averager(dict):
-    def __init__(self, run, fit_only=False, use_weights=False, use_cache=False):
+    def __init__(self, run, fit_only=False, use_weights=False, use_cache=False,
+                 do_test=False, ntest=100000):
         self['run'] = run
         self['use_weights'] = use_weights
         self['use_cache'] = use_cache
         self['fit_only'] = fit_only
+
+        self['do_test'] = do_test
+        self['ntest'] = ntest
 
         if self['use_weights']:
             print("Using weights")
@@ -119,7 +124,7 @@ class Averager(dict):
         if args.show:
             tab.show(width=1000, height=1000)
 
-    def _get_averages_noweight(self, show_progress=True):
+    def _get_averages_noweight(self, show_progress=False):
 
         data=self.data
 
@@ -156,7 +161,7 @@ class Averager(dict):
 
         return means
 
-    def _get_averages_weighted(self, show_progress=True):
+    def _get_averages_weighted(self, show_progress=False):
 
         data=self.data
 
@@ -257,7 +262,7 @@ class Averager(dict):
         wts = 1.0/(1.0 + (S2N_SOFT/s2n)**2 )
         return wts
 
-    def _get_averages(self, show_progress=True):
+    def _get_averages(self, show_progress=False):
         if self['use_weights']:
             return self._get_averages_weighted(show_progress=show_progress)
         else:
@@ -271,14 +276,18 @@ class Averager(dict):
         self.data=data
 
     def _read_cached_data(self):
-        tfile=get_cache_file(self['run'])
-        if os.path.exists(tfile):
-            print("reading cache:",tfile)
-            data=fitsio.read(tfile)#, rows=arange(1000000))
+        cache_file=get_cache_file(self['run'])
+        if not os.path.exists(cache_file):
+            self._cache_in_chunks()
+
+        print("reading cache:",cache_file)
+
+        if self['do_test']:
+            rows=arange(self['ntest'])
         else:
-            data=self._read_data()
-            print("writing cache:",tfile)
-            fitsio.write(tfile, data, clobber=True)
+            rows=None
+
+        data=fitsio.read(cache_file, rows=rows)
 
         return data
 
@@ -290,13 +299,69 @@ class Averager(dict):
         columns=self._get_columns()
 
         print("reading columns:",columns)
-        data=files.read_collated(self['run'], columns=columns)#, rows=arange(1000000))
+
+        # if we get here and use_cache is specified, we are supposed to
+        # read the whole thing and write the cache, *then* read a test
+        # subset
+        if self['do_test'] and not self['use_cache']:
+            rows=arange(self['ntest'])
+        else:
+            rows=None
+
+        data=files.read_collated(self['run'], columns=columns, rows=rows)
 
         w,=numpy.where(data['flags']==0)
         print("    keeping %d/%d" % (w.size,data.size))
         data=data[w]
 
         return data
+
+    def _cache_in_chunks(self):
+
+        cache_file=get_cache_file(self['run'])
+        print("cacheing to:",cache_file)
+
+        columns=self._get_columns()
+        print("cacheing columns:")
+        pprint(columns)
+
+        chunksize=1000000
+
+        first=True
+        with fitsio.FITS(cache_file,'rw',clobber=True) as output:
+            fname=files.get_collated_file(self['run'])
+
+            print("cacheing from:",fname)
+
+            with fitsio.FITS(fname) as fits:
+
+                hdu=fits[1]
+
+                nrows=hdu.get_nrows()
+                nchunks = nrows//chunksize
+
+                if (nrows % chunksize) > 0:
+                    nchunks += 1
+
+                beg=0
+                for i in xrange(nchunks):
+                    print("    chunk %d/%d" % (i+1,nchunks))
+
+                    end=beg+chunksize
+
+                    data = hdu[columns][beg:end]
+
+                    w,=numpy.where(data['flags']==0)
+                    data=data[w]
+
+                    if first:
+                        output.write(data)
+                        first=False
+                    else:
+                        output[-1].append(data)
+
+                    beg = beg + chunksize
+
 
     def _read_means(self):
         return files.read_fit_file(self['run'], extra='shear-means')
@@ -317,7 +382,7 @@ class Averager(dict):
 
 
 class AveragerRmean(Averager):
-    def _get_averages_noweight(self, show_progress=True):
+    def _get_averages_noweight(self, show_progress=False):
 
         data=self.data
 
@@ -355,7 +420,7 @@ class AveragerRmean(Averager):
 
         return means
 
-    def _get_averages_weighted(self, show_progress=True):
+    def _get_averages_weighted(self, show_progress=False):
 
         data=self.data
 
@@ -452,14 +517,17 @@ class AveragerDetrend(AveragerRmean):
                 Rdt_psf = (data['mcal_dt_Rnoise_psf']*wna1).sum(axis=0)/wsum
             else:
                 print("No Rnoise psf found")
-                Rdt_psf = zeros(2)
+                Rdt_psf = None
         else:
             Rdt = data[dtR_field].mean(axis=0)
             if dtR_psf_field in data.dtype.names:
                 Rdt_psf = data['mcal_dt_Rnoise_psf'].mean(axis=0)
             else:
                 print("No Rnoise psf found")
-                Rdt_psf = zeros(2)
+                Rdt_psf = None
+
+        if Rdt_psf is None:
+            Rdt_psf = 0.0*Rdt[:,:,0]
 
         A = zeros( (2,2) )
         Apsf = zeros(2)
@@ -1015,11 +1083,11 @@ class MCFitter(object):
 
 def get_cache_file(run):
     tdir=os.environ['TMPDIR']
-    tfile= files.get_collated_file(run)
-    tfile=os.path.basename(tfile)
+    cache_file= files.get_collated_file(run)
+    cache_file=os.path.basename(cache_file)
 
-    tfile=os.path.join(tdir, tfile)
-    return tfile
+    cache_file=os.path.join(tdir, cache_file)
+    return cache_file
 
 def get_mean_struct(n):
     dt=[('shear','f8',2),
