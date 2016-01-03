@@ -384,7 +384,11 @@ v05deep larger deep sim, 1,000,000
       m2: 8.658e-05 +/- 7.981e-04 c2: -8.449e-08 +/- 2.882e-05  r2: -0.08
       m: -1.049e-03 +/- 5.780e-04
 
-
+- v13
+    - small new run 2M with fixes for psf center and kolmogorov
+- v14
+    - same as v13 but 100M
+    - creation of sim files not yet complete
 
 great3reredux v1
 -----------------

@@ -2,7 +2,7 @@ from __future__ import print_function
 
 import os
 import numpy
-from numpy import arange, sqrt, array
+from numpy import arange, sqrt, array, zeros
 
 import fitsio
 import esutil as eu
@@ -172,10 +172,10 @@ class Averager(dict):
         model=self['model_pars'].keys()[0]
         wfield = '%s_mcal_s2n_r' % model
 
-        Rmean = numpy.zeros( (2,2) )
-        psf_corr = numpy.zeros( 2 )
-        gmean = numpy.zeros( 2 )
-        gerr  = numpy.zeros( 2 )
+        Rmean = zeros( (2,2) )
+        psf_corr = zeros( 2 )
+        gmean = zeros( 2 )
+        gerr  = zeros( 2 )
 
         for i in xrange(nind):
             if show_progress:
@@ -371,10 +371,10 @@ class AveragerRmean(Averager):
         model=self['model_pars'].keys()[0]
         wfield = '%s_mcal_s2n_r' % model
 
-        Rmean = numpy.zeros( (2,2) )
-        psf_corr = numpy.zeros( 2 )
-        gmean = numpy.zeros( 2 )
-        gerr  = numpy.zeros( 2 )
+        Rmean = zeros( (2,2) )
+        psf_corr = zeros( 2 )
+        gmean = zeros( 2 )
+        gerr  = zeros( 2 )
 
         s2n = data[wfield]
         wts = self._get_s2n_weights(s2n)
@@ -431,7 +431,7 @@ class AveragerDetrend(AveragerRmean):
 
         data=self.data
 
-        noise0 = sqrt(self['orig_noise']**2 + self['extra_sim_noise']**2)
+        noise0 = self['target_noise']
         print("noise0:",noise0)
 
         target_noises = array( self['detrend_noises'] )
@@ -440,24 +440,32 @@ class AveragerDetrend(AveragerRmean):
 
         model=self['model']
         dtR_field = '%s_mcal_dt_Rnoise' % model
+        dtR_psf_field = '%s_mcal_dt_Rnoise_psf' % model
         if weights is not None:
             wsum=weights.sum()
             wna1=weights[:,newaxis]
             wna2=weights[:,newaxis,newaxis]
 
             Rdt = (data[dtR_field]*wna2).sum(axis=0)/wsum
-            #Rdt_psf = (data['mcal_dt_Rnoise_psf']*wna1).sum(axis=0)/wsum
 
+            if dtR_psf_field in data.dtype.names:
+                Rdt_psf = (data['mcal_dt_Rnoise_psf']*wna1).sum(axis=0)/wsum
+            else:
+                print("No Rnoise psf found")
+                Rdt_psf = zeros(2)
         else:
             Rdt = data[dtR_field].mean(axis=0)
-            #Rdt_psf = data['mcal_dt_Rnoise_psf'].mean(axis=0)
+            if dtR_psf_field in data.dtype.names:
+                Rdt_psf = data['mcal_dt_Rnoise_psf'].mean(axis=0)
+            else:
+                print("No Rnoise psf found")
+                Rdt_psf = zeros(2)
 
-        A = numpy.zeros( (2,2) )
-        #Apsf = numpy.zeros(2)
+        A = zeros( (2,2) )
+        Apsf = zeros(2)
 
         p='%s (%.3g +/- %.3g) + (%.3g +/ %.3g) deltan'
         for i in xrange(2):
-            """
             res = fitline(xvals, Rdt_psf[:,i])
             Apsf[i] = res['slope']
 
@@ -468,7 +476,6 @@ class AveragerDetrend(AveragerRmean):
                     r'$2 n \Delta n$',
                     r'$\Delta R^{PSF}_%d$' % (i+1),
                 )
-            """
 
             for j in xrange(2):
                 res = fitline(xvals, Rdt[:,i,j])
@@ -492,12 +499,14 @@ class AveragerDetrend(AveragerRmean):
                     )
 
         Rnoise = A*noise0**2
-        #Rnoise_psf = Apsf*noise0**2 
+        Rnoise_psf = Apsf*noise0**2 
 
-        #return Rnoise, Rnoise_psf
         print("Rnoise")
         images.imprint(Rnoise, fmt='%.3g')
-        return Rnoise
+        print("Rnoise_psf")
+        print('%.3g %.3g' % tuple(Rnoise_psf))
+
+        return Rnoise, Rnoise_psf
 
     def _get_arrays(self):
 
@@ -518,13 +527,16 @@ class AveragerDetrend(AveragerRmean):
         R = data[Rfield].copy()
         Rpsf = data[Rpsf_field].copy()
 
-        Rnoise = self._get_Rnoise()
+        Rnoise, Rnoise_psf = self._get_Rnoise()
+
         R -= Rnoise
+        Rpsf -= Rnoise_psf
 
         return g, gpsf, R, Rpsf
 
 
     def _get_columns(self):
+
         model=self['model']
         columns=[
             '%s_mcal_g' % model,
@@ -535,6 +547,14 @@ class AveragerDetrend(AveragerRmean):
             'shear_index',
             'flags'
         ]
+
+        fname=files.get_collated_file(self['run'])
+        with fitsio.FITS(fname) as fobj:
+            colnames=fobj[1].get_colnames()
+            Rpcol='%s_mcal_dt_Rnoise_psf' % model
+            if Rpcol in colnames:
+                columns.append(Rpcol)
+
 
         if self['use_weights']:
             columns += ['%s_mcal_s2n_r' % model]
