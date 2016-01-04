@@ -115,6 +115,24 @@ def get_log_file(run, fnum, beg, end):
     url = get_output_file(run, fnum, beg, end)
     return url.replace('.fits', '.log')
 
+def get_plot_dir(run):
+    """
+    plots
+    """
+
+    basedir = get_rundir(run)
+    return os.path.join(basedir, 'plots')
+
+def get_plot_file(run, extra):
+    """
+    location of output file
+    """
+
+    dir=get_plot_dir(run)
+    fname = '%s-%s.eps' % (run, extra)
+    return os.path.join(dir, fname)
+
+
 #
 # collated files
 #

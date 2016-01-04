@@ -32,12 +32,15 @@ parser.add_argument('--ntest',default=100000,type=int,
 def main():
     args = parser.parse_args()
     cls = reredux.averaging.AveragerDetrend
-    av=cls(args.run,
-           do_test=args.test,
-           ntest=args.ntest,
-           fit_only=args.fit_only,
-           use_weights=args.weights,
-           use_cache=args.cache)
+    av=cls(
+        args.run,
+        do_test=args.test,
+        ntest=args.ntest,
+        fit_only=args.fit_only,
+        use_weights=args.weights,
+        use_cache=args.cache,
+        show=args.show,
+    )
     av.go()
     av.doplot(args)
 

@@ -14,11 +14,16 @@ S2N_SOFT=20.0
 
 class Averager(dict):
     def __init__(self, run, fit_only=False, use_weights=False, use_cache=False,
-                 do_test=False, ntest=100000):
+                 do_test=False, ntest=100000, show=False):
+
+        """
+        this show is for the detrend fits
+        """
         self['run'] = run
         self['use_weights'] = use_weights
         self['use_cache'] = use_cache
         self['fit_only'] = fit_only
+        self['show'] = show
 
         self['do_test'] = do_test
         self['ntest'] = ntest
@@ -46,11 +51,11 @@ class Averager(dict):
             self._write_means()
 
         self.fits = fit_m_c(self.means)
-        self.Q=calc_q(self.fits)
-        print("  Q: %d" % self.Q)
+        #self.Q=calc_q(self.fits)
+        #print("  Q: %d" % self.Q)
 
         self.fits_onem = fit_m_c(self.means, onem=True)
-        self.Q_onem=calc_q(self.fits_onem)
+        #self.Q_onem=calc_q(self.fits_onem)
 
         self._write_fits(self.fits)
 
@@ -65,7 +70,7 @@ class Averager(dict):
         if args.yrange is not None:
             yrange=[float(r) for r in args.yrange.split(',')]
         else:
-            yrange=[-0.01,0.01]
+            yrange=[-0.005,0.005]
 
         xrng=args.xrange
         if xrng is not None:
@@ -75,6 +80,7 @@ class Averager(dict):
         tab.aspect_ratio=0.5
 
         diff = means['shear'] - means['shear_true']
+        differr = means['shear_err']
 
         plts=[]
         for i in [0,1]:
@@ -83,6 +89,7 @@ class Averager(dict):
             plt =biggles.plot(
                 x,
                 diff[:,i],
+                yerr=differr[:,i],
                 xlabel='shear%d true' % (i+1,),
                 ylabel='shear%d diff' % (i+1,),
                 yrange=yrange,
@@ -298,6 +305,8 @@ class Averager(dict):
 
         columns=self._get_columns()
 
+        columns += ['gauss_mcal_pars']
+
         print("reading columns:",columns)
 
         # if we get here and use_cache is specified, we are supposed to
@@ -310,13 +319,18 @@ class Averager(dict):
 
         data=files.read_collated(self['run'], columns=columns, rows=rows)
 
-        w,=numpy.where(data['flags']==0)
+        Tcol='%s_mcal_pars' % model
+        w,=numpy.where( (data['flags']==0) & (data[Tcol][:,4] < 0) )
         print("    keeping %d/%d" % (w.size,data.size))
         data=data[w]
+
 
         return data
 
     def _cache_in_chunks(self):
+
+        model=self['model']
+        Tcol='%s_mcal_pars' % model
 
         cache_file=get_cache_file(self['run'])
         print("cacheing to:",cache_file)
@@ -351,8 +365,14 @@ class Averager(dict):
 
                     data = hdu[columns][beg:end]
 
-                    w,=numpy.where(data['flags']==0)
+                    w,=numpy.where(
+                        (data['flags']==0)
+                        & (data[Tcol][:,4] < 0)
+                    )
+                    print("        %d/%d" % (w.size, data.size))
                     data=data[w]
+
+                    data=eu.numpy_util.remove_fields(data,s2n_col)
 
                     if first:
                         output.write(data)
@@ -526,23 +546,27 @@ class AveragerDetrend(AveragerRmean):
                 print("No Rnoise psf found")
                 Rdt_psf = None
 
+        plot_psf=True
         if Rdt_psf is None:
+            plot_psf=False
             Rdt_psf = 0.0*Rdt[:,:,0]
 
         A = zeros( (2,2) )
         Apsf = zeros(2)
 
-        p='%s (%.3g +/- %.3g) + (%.3g +/ %.3g) deltan'
+        p='%s (%.4g +/- %.4g) + (%.4g +/ %.4g) deltan'
         for i in xrange(2):
             res = fitline(xvals, Rdt_psf[:,i])
             Apsf[i] = res['slope']
 
-            if show:
+            if plot_psf:
                 plot_line_fit(
+                    self['run'],
                     'Rnoise-detrend-Rpsf%d' % (i+1),
                     xvals, Rdt_psf[:,i],res,
                     r'$2 n \Delta n$',
                     r'$\Delta R^{PSF}_%d$' % (i+1),
+                    show=show,
                 )
 
             for j in xrange(2):
@@ -556,23 +580,24 @@ class AveragerDetrend(AveragerRmean):
                 oerr=res['offset_err']
                 print(p % (n,o,oerr,s,serr))
 
-                if show:
-                    plot_line_fit(
-                        'Rnoise-detrend-R%d%d' % (i+1,j+1),
-                        xvals,
-                        Rdt[:,i,j],
-                        res,
-                        r'$2 n \Delta n$',
-                        r'$\Delta R_{%d,%d}$' % (i+1,j+1),
-                    )
+                plt=plot_line_fit(
+                    self['run'],
+                    'Rnoise-detrend-R%d%d' % (i+1,j+1),
+                    xvals,
+                    Rdt[:,i,j],
+                    res,
+                    r'$2 n \Delta n$',
+                    r'$\Delta R_{%d,%d}$' % (i+1,j+1),
+                    show=show,
+                )
 
         Rnoise = A*noise0**2
-        Rnoise_psf = Apsf*noise0**2 
+        Rnoise_psf = Apsf*noise0**2
 
         print("Rnoise")
-        images.imprint(Rnoise, fmt='%.3g')
+        images.imprint(Rnoise, fmt='%.4g')
         print("Rnoise_psf")
-        print('%.3g %.3g' % tuple(Rnoise_psf))
+        print('%.4g %.4g' % tuple(Rnoise_psf))
 
         return Rnoise, Rnoise_psf
 
@@ -612,6 +637,7 @@ class AveragerDetrend(AveragerRmean):
             '%s_mcal_R' % model,
             '%s_mcal_Rpsf' % model,
             '%s_mcal_dt_Rnoise' % model,
+            '%s_mcal_pars' % model,
             'shear_index',
             'flags'
         ]
@@ -846,7 +872,7 @@ def fit_m_c(data, doprint=True, onem=False):
 
 
 #def plot_line_fit(args, extra, x, y, res, xlabel, ylabel):
-def plot_line_fit(extra, x, y, res, xlabel, ylabel):
+def plot_line_fit(run, extra, x, y, res, xlabel, ylabel, show=False):
     import biggles
     plt=biggles.FramedPlot()
 
@@ -878,16 +904,16 @@ def plot_line_fit(extra, x, y, res, xlabel, ylabel):
 
     plt.add(c, pts, alabel, blabel)
 
-    #plotfile=files.get_plot_url(args.run, extra)
+    plotfile=files.get_plot_file(run, extra)
 
-    #print("writing:",plotfile)
-    #eu.ostools.makedirs_fromfile(plotfile)
-    #plt.write_eps(plotfile)
+    print("writing:",plotfile)
+    eu.ostools.makedirs_fromfile(plotfile)
+    plt.write_eps(plotfile)
 
-    #if args.show:
-    #    plt.show()
-    plt.show()
+    if show:
+        plt.show()
 
+    return plt
 
 
 

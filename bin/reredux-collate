@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from __future__ import print_function
 import os
+import shutil
 import fitsio
 import reredux
 from reredux import files
@@ -13,12 +14,19 @@ parser=ArgumentParser()
 parser.add_argument('run',help='run identifier')
 parser.add_argument('--allow-missing',action='store_true',
                     help='skip missing ones')
+parser.add_argument('--temp',action='store_true',
+                    help='use a temporary directory')
 
-def make_dir(collated_file):
-    d=os.path.dirname(collated_file)
-    if not os.path.exists(d):
-        print("making dir:",d)
-        os.makedirs(d)
+def get_collated_file(run, temp=False):
+
+    fname=files.get_collated_file(run)
+
+    if temp:
+        tdir=os.environ['TMPDIR']
+        bname=os.path.basename(fname)
+        fname=os.path.join(tdir, bname)
+
+    return fname
 
 def read_meds_data(version, fnum):
     fname=files.get_meds_file(version, fnum)
@@ -37,16 +45,21 @@ def main():
     version=runconf['reredux_config']
     reredux_conf = files.read_egret_config(version)
 
-    collated_file=files.get_collated_file(args.run)
-    make_dir(collated_file)
+    collated_file=get_collated_file(args.run)
+    eu.ostools.makedirs_fromfile(collated_file)
 
-    #ntot = reredux_conf['nperfile']
+    if args.temp:
+        final_file=collated_file
+        collated_file=get_collated_file(args.run, temp=True)
+        eu.ostools.makedirs_fromfile(collated_file)
+
+    print("writing to:",collated_file)
+
     ntot = reredux_conf['Ngals']
     npersplit = runconf['nper']
 
     beglist,endlist = reredux.batch.get_splits(ntot, npersplit)
 
-    #nfiles = reredux_conf['nfiles']
     nfiles = reredux_conf['Nfiles']
 
     first=True
@@ -74,7 +87,7 @@ def main():
                         continue
                     else:
                         raise RuntimeError(mess)
-                
+
                 print("    ",fname)
                 data=fitsio.read(fname)
 
@@ -88,5 +101,10 @@ def main():
                 else:
                     fits[-1].append(data)
 
+    if args.temp:
+        print("moving %s -> %s" % (collated_file, final_file))
+        shutil.move(collated_file, final_file)
+
     print("collated file is:",collated_file)
+
 main()
