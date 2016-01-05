@@ -1,30 +1,107 @@
 from __future__ import print_function
 import os
 
+#
+# egretsims
+#
 
-def get_reredux_basedir():
+def get_egret_config_dir():
     """
-    base directory for great3reredux images
+    location of config files for egret sims
+    """
+    return os.environ['EGRET_CONFIG_DIR']
+
+def get_egret_config_file(version):
+    """
+    location of config file for egret sim
+    """
+    d=get_egret_config_dir()
+    name='%s.yaml' % version
+    return os.path.join(d, name)
+
+def read_egret_config(version):
+    """
+    location of config file for egret sim
+    """
+    import yaml
+    fname=get_egret_config_file(version)
+
+    print("reading config:",fname)
+    with open(fname) as fobj:
+        data = yaml.load(fobj)
+
+    return data
+
+def get_egret_basedir():
+    """
+    base directory for egret images
     """
     return os.environ['REREDUX_DATA_DIR']
 
-def get_data_dir(version):
+def get_egret_data_dir(version):
     """
     directory holding images
     """
-    basedir = get_reredux_basedir()
-
-    #subdirs='work/data'
-    #return os.path.join(basedir, version, subdirs)
+    basedir = get_egret_basedir()
     return os.path.join(basedir, version)
 
-def get_meds_file(version, fnum):
+#
+# wombat sims
+#
+
+def get_wombat_config_dir():
+    """
+    location of config files for wombat sims
+    """
+    return get_config_dir()
+
+def get_wombat_config_file(version):
+    """
+    location of config file for wombat sim
+    """
+    d=get_wombat_config_dir()
+    name='wombat-%s.yaml' % version
+    return os.path.join(d, name)
+
+def read_wombat_config(version):
+    """
+    location of config file for wombat sim
+    """
+    import yaml
+    fname=get_wombat_config_file(version)
+
+    print("reading wombat config:",fname)
+    with open(fname) as fobj:
+        data = yaml.load(fobj)
+
+    return data
+
+
+def get_wombat_basedir():
+    """
+    base directory for egret images
+    """
+    return os.environ['WOMBAT_DATA_DIR']
+
+def get_wombat_data_dir(version):
+    """
+    directory holding images
+    """
+    basedir = get_wombat_basedir()
+    return os.path.join(basedir, version)
+
+
+
+def get_meds_file(version, fnum, type='egret'):
     """
     the meds file
     """
-    d = get_data_dir(version)
-
-    fname = '%s_meds%06d.fits.fz' % (version,fnum)
+    if type=='egret':
+        d = get_egret_data_dir(version)
+        fname = '%s_meds%06d.fits.fz' % (version,fnum)
+    else:
+        d = get_wombat_data_dir(version)
+        fname = 'sim-%s-%03d.fits' % (version,fnum)
 
     return os.path.join(d, fname)
 
@@ -266,16 +343,19 @@ def read_averaged(run, corr_run, **kw):
 # this works for both run and reredux version configs
 #
 
+def get_config_dir():
+    d=os.environ['REREDUX_DIR']
+    d = os.path.join(d, 'share/reredux_config')
+    return d
+
 def get_config_file(name):
     """
     the yaml config file
 
     name could represent a run or reredux version
     """
-    d=os.environ['REREDUX_DIR']
 
-    d = os.path.join(d, 'share/reredux_config')
-
+    d=get_config_dir()
     fname = '%s.yaml' % name
     return os.path.join(d, fname)
 
@@ -293,38 +373,6 @@ def read_config(name):
         data = yaml.load(fobj)
     
     return data
-
-#
-# egretsims config files
-#
-
-def get_egret_config_dir():
-    """
-    location of config files for egret sims
-    """
-    return os.environ['EGRET_CONFIG_DIR']
-
-def get_egret_config_file(version):
-    """
-    location of config file for egret sim
-    """
-    d=get_egret_config_dir()
-    name='%s.yaml' % version
-    return os.path.join(d, name)
-
-def read_egret_config(version):
-    """
-    location of config file for egret sim
-    """
-    import yaml
-    fname=get_egret_config_file(version)
-
-    print("reading config:",fname)
-    with open(fname) as fobj:
-        data = yaml.load(fobj)
-    
-    return data
-
 
 #
 # lsf batch system

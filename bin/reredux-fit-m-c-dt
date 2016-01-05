@@ -11,6 +11,8 @@ parser = ArgumentParser()
 parser.add_argument('run', help='run to use in fit')
 
 parser.add_argument('--cuts', help="cuts to apply")
+parser.add_argument('--select-cosmos', action='store_true',
+                    help="select good cosmos galaxies")
 
 parser.add_argument('--weights',action='store_true',help='use weights')
 
@@ -41,6 +43,7 @@ def main():
         fit_only=args.fit_only,
         use_weights=args.weights,
         cuts=args.cuts,
+        select_cosmos=args.select_cosmos,
         use_cache=args.cache,
         show=args.show,
     )

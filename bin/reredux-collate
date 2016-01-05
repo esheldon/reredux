@@ -28,8 +28,8 @@ def get_collated_file(run, temp=False):
 
     return fname
 
-def read_meds_data(version, fnum):
-    fname=files.get_meds_file(version, fnum)
+def read_meds_data(sim_type,version, fnum):
+    fname=files.get_meds_file(version, fnum, type=sim_type)
     if not os.path.exists(fname):
         print("missing meds file:",fname)
         return None
@@ -38,9 +38,9 @@ def read_meds_data(version, fnum):
 
 def main():
     args = parser.parse_args()
-    add_shear_index=True
 
     runconf = files.read_config(args.run)
+    sim_type=runconf.get('sim_type','egret')
 
     version=runconf['reredux_config']
     reredux_conf = files.read_egret_config(version)
@@ -67,15 +67,12 @@ def main():
         for fnum in xrange(nfiles):
             print("%d/%d" % (fnum+1, nfiles))
 
-            if add_shear_index:
-                mdata=read_meds_data(version, fnum)
-                if mdata is None:
-                    continue
-                if 'shear_index' not in mdata.dtype.names:
-                    print("    ** shear_index not found, not copying it **")
-                    add_shear_index=False
-                else:
-                    shear_indices = mdata['shear_index']
+            mdata=read_meds_data(sim_type,version, fnum)
+            if mdata is None:
+                continue
+
+            shear_indices = mdata['shear_index']
+            cosmos_indices = mdata['cosmos_id']
 
             for beg,end in zip(beglist, endlist):
                 fname=files.get_output_file(args.run, fnum, beg, end)
@@ -90,10 +87,10 @@ def main():
 
                 print("    ",fname)
                 data=fitsio.read(fname)
-
-                if add_shear_index:
-                    data = eu.numpy_util.add_fields(data, [('shear_index','i8')])
-                    data['shear_index'] = shear_indices[data['id']]
+                addf=[('shear_index','i8'),('cosmos_id','i8')]
+                data = eu.numpy_util.add_fields(data, addf)
+                data['shear_index'] = shear_indices[data['id']]
+                data['cosmos_id'] = cosmos_indices[data['id']]
 
                 if first:
                     first=False
@@ -104,6 +101,8 @@ def main():
     if args.temp:
         print("moving %s -> %s" % (collated_file, final_file))
         shutil.move(collated_file, final_file)
+
+        collated_file=final_file
 
     print("collated file is:",collated_file)
 

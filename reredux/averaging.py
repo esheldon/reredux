@@ -3,9 +3,10 @@ from __future__ import print_function
 import os
 from pprint import pprint
 import numpy
-from numpy import arange, sqrt, array, zeros
+from numpy import arange, sqrt, array, zeros, where
 
 import fitsio
+import ngmix
 import esutil as eu
 from esutil.numpy_util import between
 
@@ -19,8 +20,15 @@ MAX_LOG_T=-0.4
 #MAX_LOG_T=-0.3
 
 class Averager(dict):
-    def __init__(self, run, fit_only=False, use_weights=False, use_cache=False,
-                 do_test=False, ntest=100000, show=False, cuts=None):
+    def __init__(self, run,
+                 fit_only=False,
+                 use_weights=False,
+                 use_cache=False,
+                 do_test=False,
+                 ntest=100000,
+                 show=False,
+                 cuts=None,
+                 select_cosmos=False):
 
         """
         this show is for the detrend fits
@@ -29,6 +37,7 @@ class Averager(dict):
         self['use_weights'] = use_weights
         self['use_cache'] = use_cache
         self['fit_only'] = fit_only
+        self['select_cosmos'] = select_cosmos
         self['show'] = show
 
         self['cuts'] = cuts
@@ -49,11 +58,14 @@ class Averager(dict):
         #self.shears = self['sconf']['shear']['shears']
         self.shears = self['sconf']['shearmaker']['shears']
 
+        if self['select_cosmos']:
+            self._good_cosmos_ids = get_good_cosmos()
+
         if not self['fit_only']:
             self._load_data()
 
+
     def go(self):
-        print("fit only:",self['fit_only'])
         if self['fit_only']:
             self.means = self._read_means()
         else:
@@ -62,7 +74,7 @@ class Averager(dict):
 
         '''
         maxdiff=0.0015
-        w,=numpy.where(
+        w,=where(
             (numpy.abs(self.means['shear'][:,0] - self.means['shear_true'][:,0]) < maxdiff)
             &
             (numpy.abs(self.means['shear'][:,1] - self.means['shear_true'][:,1]) < maxdiff)
@@ -249,9 +261,10 @@ class Averager(dict):
 
         return means
 
-    def _get_arrays(self):
+    def _get_arrays(self, data=None):
 
-        data=self.data
+        if data is None:
+            data=self.data
 
         print("getting arrays")
         model=self['model']
@@ -277,6 +290,7 @@ class Averager(dict):
             '%s_mcal_R' % model,
             '%s_mcal_Rpsf' % model,
             'shear_index',
+            'cosmos_id',
             'flags'
         ]
 
@@ -320,10 +334,157 @@ class Averager(dict):
 
         return data
 
+    def _get_selection_effect_crap(self, data, index):
 
-    def _read_data(self):
+        shear=0.04
+
+        g, gpsf, R, Rpsf = self._get_arrays(data=data)
+
+        Rmean = R.mean(axis=0)
+        Rpsf_mean = Rpsf.mean(axis=0)
+
+        Rinv = numpy.linalg.inv(Rmean)
+
+        g1tot = g[:,0]
+        g2tot = g[:,1]
+
+        sg1,sg2 = ngmix.shape.shear_reduced(g1tot,
+                                            g2tot,
+                                            shear,
+                                            shear)
+
+        sheared_g = numpy.zeros( (data.size, 2) )
+
+        sheared_g[:,0] = sg1
+        sheared_g[:,1] = sg2
+
+        #
+        # no selection
+        #
+
+        psf_corr  = gpsf.mean(axis=0)*Rpsf_mean
+
+        smean     = sheared_g.mean(axis=0)
+        shear     = numpy.dot(Rinv, smean-psf_corr)
+        shear_err = sheared_g.std(axis=0)/numpy.sqrt(data.size)
+        shear_err = numpy.dot(Rinv, shear_err)
+
+        #
+        # with selection
+        #
+        Rmean = R[index].mean(axis=0)
+        Rpsf_mean = Rpsf[index].mean(axis=0)
+
+        Rinv = numpy.linalg.inv(Rmean)
+
+        psf_corr  = gpsf[index].mean(axis=0)*Rpsf_mean
+
+        smean       = sheared_g[index].mean(axis=0)
+        s_shear     = numpy.dot(Rinv, smean-psf_corr)
+        s_shear_err = sheared_g[index].std(axis=0)/numpy.sqrt(index.size)
+        s_shear_err = numpy.dot(Rinv, s_shear_err)
+
+        print()
+        print("    mean: %g +/- %g  %g +/- %g" % (shear[0],shear_err[0],shear[1],shear_err[1]))
+        print("sel mean: %g +/- %g  %g +/- %g" % (s_shear[0],s_shear_err[0],s_shear[1],s_shear_err[1]))
+
+        sel = shear/s_shear
+
+        print("sel:",sel)
+        print()
+        return sel
+
+
+    def _get_selection_effect(self, data, index):
+
+        shear=0.05
 
         model=self['model']
+        gfield = '%s_mcal_g' % model
+
+        gvals = data[gfield]
+
+        """
+        g1tot = numpy.zeros(data.size*2)
+        g2tot = numpy.zeros(data.size*2)
+        g1tot[0:data.size] = data[gfield][:,0]
+        g1tot[data.size:] = -data[gfield][:,0]
+        g2tot[0:data.size] = data[gfield][:,1]
+        g2tot[data.size:] = -data[gfield][:,1]
+        """
+        g1tot = gvals[:,0]
+        g2tot = gvals[:,1]
+
+        sg1,junk = ngmix.shape.shear_reduced(g1tot,
+                                             g2tot,
+                                             shear,
+                                             0.0)
+        junk,sg2 = ngmix.shape.shear_reduced(g1tot,
+                                             g2tot,
+                                             0.0,
+                                             shear)
+
+        smean1 = sg1.mean()
+        smean2 = sg2.mean()
+
+        smean1_sel = sg1[index].mean()
+        smean2_sel = sg2[index].mean()
+
+        serr1 = sg1.std()/sqrt(sg1.size)
+        serr2 = sg2.std()/sqrt(sg2.size)
+
+        serr1_sel = sg1[index].std()/sqrt(index.size)
+        serr2_sel = sg2[index].std()/sqrt(index.size)
+
+
+        print()
+        print("    mean meas: %g +/- %g  %g +/- %g" % (smean1,serr1,smean2,serr2))
+        print("sel mean meas: %g +/- %g  %g +/- %g" % (smean1_sel,serr1_sel,smean2_sel,serr2_sel))
+
+        sel=numpy.zeros(2)
+        sel[0]=smean1/smean1_sel
+        sel[1]=smean2/smean2_sel
+
+        print("sel:",sel)
+        print()
+        return sel
+
+    def _select(self, data):
+
+        if not self['select_cosmos'] and self['cuts'] is None:
+            return None
+
+        # some cut on cosmos goodness
+        if self['select_cosmos']:
+            print("    cutting to good cosmos")
+            mc,mdata=eu.numpy_util.match_multi(
+                self._good_cosmos_ids,
+                data['cosmos_id']
+            )
+
+            print("        keeping %d/%d good cosmos" % (mdata.size,data.size))
+
+            logic = numpy.zeros(data.size, dtype=bool)
+            logic[mdata] = True
+        else:
+            logic = numpy.ones(data.size, dtype=bool)
+
+
+        # optional additional cuts given on the command line
+        if self['cuts'] is not None:
+            print("    cutting: '%s'" % self['cuts'])
+            tlogic = eval(self['cuts'])
+            w,=where(tlogic)
+            print("        keeping %d/%d from cuts" % (w.size,data.size))
+
+            logic = logic & tlogic
+
+        w,=where( logic )
+        print("    keeping %d/%d" % (w.size,data.size))
+
+        return w
+
+    def _read_data(self):
 
         columns=self._get_columns()
 
@@ -339,22 +500,23 @@ class Averager(dict):
 
         data=files.read_collated(self['run'], columns=columns, rows=rows)
 
-        print("cutting flags")
-        logic = data['flags']==0
-
-        if self['cuts'] is not None:
-            print("cutting: '%s'" % self['cuts'])
-            logic = logic & eval(self['cuts'])
-
-        w,=numpy.where( logic )
-        print("    keeping %d/%d" % (w.size,data.size))
+        # always make the flag cuts
+        print("    cutting flags")
+        w,=where(data['flags']==0)
+        print("        keeping %d/%d from flags" % (w.size,data.size))
         data=data[w]
+
+        w=self._select(data)
+        if w is not None:
+            self._sel = self._get_selection_effect(data, w)
+            #self._sel = numpy.ones(2)
+            data=data[w]
+        else:
+            self._sel = numpy.ones(2)
 
         return data
 
     def _cache_in_chunks(self):
-
-        model=self['model']
 
         cache_file=get_cache_file(self['run'])
         print("cacheing to:",cache_file)
@@ -383,21 +545,20 @@ class Averager(dict):
 
                 beg=0
                 for i in xrange(nchunks):
-                    print("    chunk %d/%d" % (i+1,nchunks))
+                    print("chunk %d/%d" % (i+1,nchunks))
 
                     end=beg+chunksize
 
                     data = hdu[columns][beg:end]
 
-                    logic = (data['flags']==0)
-                    if self['cuts'] is not None:
-                        #print("cutting: '%s'" % self['cuts'])
-                        logic = logic & eval(self['cuts'])
-
-                    w,=numpy.where(logic)
-
-                    print("        %d/%d" % (w.size, data.size))
+                    print("    cutting flags")
+                    w,=where(data['flags']==0)
+                    print("        keeping %d/%d from flags" % (w.size,data.size))
                     data=data[w]
+
+                    w=self._select(data)
+                    if w is not None:
+                        data=data[w]
 
                     if first:
                         output.write(data)
@@ -438,9 +599,14 @@ class AveragerRmean(Averager):
 
         g, gpsf, R, Rpsf = self._get_arrays()
 
+        g[:,0] *= self._sel[0]
+        g[:,1] *= self._sel[1]
+
         Rmean = R.mean(axis=0)
+
         Rpsf_mean = Rpsf.mean(axis=0)
         Rinv = numpy.linalg.inv(Rmean)
+
 
         means=get_mean_struct(nind)
 
@@ -535,11 +701,12 @@ class AveragerRmean(Averager):
 
 
 class AveragerDetrend(AveragerRmean):
-    def _get_Rnoise(self, weights=None, show=False):
+    def _get_Rnoise(self, weights=None, show=False, data=None):
         import images
         from numpy import newaxis
 
-        data=self.data
+        if data is None:
+            data=self.data
 
         noise0 = self['target_noise']
         print("noise0:",noise0)
@@ -626,9 +793,10 @@ class AveragerDetrend(AveragerRmean):
 
         return Rnoise, Rnoise_psf
 
-    def _get_arrays(self):
+    def _get_arrays(self, data=None):
 
-        data=self.data
+        if data is None:
+            data=self.data
 
         print("getting arrays")
         model=self['model']
@@ -645,7 +813,7 @@ class AveragerDetrend(AveragerRmean):
         R = data[Rfield].copy()
         Rpsf = data[Rpsf_field].copy()
 
-        Rnoise, Rnoise_psf = self._get_Rnoise()
+        Rnoise, Rnoise_psf = self._get_Rnoise(data=data)
 
         R -= Rnoise
         Rpsf -= Rnoise_psf
@@ -665,6 +833,7 @@ class AveragerDetrend(AveragerRmean):
             '%s_s2n_r' % model,
             '%s_log_T_r' % model,
             'shear_index',
+            'cosmos_id',
             'flags'
         ]
 
@@ -683,9 +852,10 @@ class AveragerDetrend(AveragerRmean):
 
 
 class AveragerSimn(Averager):
-    def _get_arrays(self):
+    def _get_arrays(self, data=None):
 
-        data=self.data
+        if data is None:
+            data=self.data
 
         print("getting arrays")
         model=self['model']
@@ -719,6 +889,7 @@ class AveragerSimn(Averager):
             '%s_mcal_Rnoise' % model,
             '%s_mcal_Rpsf_noise' % model,
             'shear_index',
+            'cosmos_id',
             'flags'
         ]
 
@@ -728,7 +899,10 @@ class AveragerSimn(Averager):
         return columns
 
 class AveragerSimnRmean(AveragerSimn):
-    def _get_arrays(self):
+    def _get_arrays(self, data=None):
+
+        if data is None:
+            data=self.data
 
         print("subtracting Rnoise_mean")
         data=self.data
@@ -781,7 +955,10 @@ class AveragerRef(Averager):
 
         super(AveragerRef,self)._load_data()
 
-    def _get_arrays(self):
+    def _get_arrays(self, data=None):
+
+        if data is None:
+            data=self.data
 
         g, gpsf, R, Rpsf = super(AveragerRef,self)._get_arrays()
 
@@ -806,7 +983,10 @@ class AveragerRefFix(AveragerRef):
     measurement
     """
 
-    def _get_arrays(self):
+    def _get_arrays(self, data=None):
+
+        if data is None:
+            data=self.data
 
         # note this is calling the parent of the parent
         g, gpsf, R, Rpsf = super(AveragerRef,self)._get_arrays()
@@ -1136,7 +1316,7 @@ class MCFitter(object):
 def get_cache_file(run):
     tdir=os.environ['TMPDIR']
     cache_file= files.get_collated_file(run)
-    cache_file=os.path.basename(cache_file)
+    cache_file=os.path.basename(cache_file).replace('.fits','-cache.fits')
 
     cache_file=os.path.join(tdir, cache_file)
     return cache_file
@@ -1158,3 +1338,58 @@ def print_m_c(sindex, m, merr, c, cerr, r=None):
         print(fmt % (m, merr, c, cerr))
 
 
+def get_good_cosmos(cat=None):
+    """
+    cuts from
+    https://github.com/GalSim-developers/GalSim/blob/%23654/galsim/scene.py#L212
+    """
+    if cat is None:
+        d=os.environ['COSMOS_DIR']
+        d=os.path.join(d,'COSMOS_23.5_training_sample')
+        fname=os.path.join(d,'real_galaxy_catalog_23.5_fits.fits')
+        print("    reading cosmos cat:",fname)
+        cat = fitsio.read(fname)
+
+    mask=numpy.ones(cat.size,dtype=bool)
+
+    min_hlr = 0.0
+    max_hlr = 2.5
+    min_flux = 8.0
+    max_flux = 50.0
+
+    cosmos_pix_scale = 0.03
+    sparams = cat['sersicfit']
+
+    sersicfit_status = cat['fit_status'][:,4]
+    bulgefit_status = cat['fit_status'][:,0]
+    mask &= ( (sersicfit_status > 0) &
+              (sersicfit_status < 5) &
+              (bulgefit_status > 0) &
+              (bulgefit_status < 5) )
+
+    # this cut is somehow different than below...
+    hlr_pix = sparams[:,1]
+    n = sparams[:,2]
+    mask &= ( (n < 5) | (hlr_pix < 1./cosmos_pix_scale) )
+
+    # different type of cut on hlr
+    q = sparams[:,3]
+    hlr = cosmos_pix_scale*hlr_pix*numpy.sqrt(q)
+    mask &= ( (hlr > min_hlr) & (hlr < max_hlr) )
+
+    # The prefactor for n=4 is 3.607.  For n=1, it is 1.901.
+    # It's not linear in these values, but for the sake of efficiency and the 
+    # ability to work on the whole array at once, just linearly interpolate.
+    # Hopefully, this can be improved as part of issue #693.  Maybe by storing the
+    # calculated directly flux in the catalog, rather than just the amplitude of the
+    # surface brightness profile at the half-light-radius?
+    #prefactor = ( (n-1.)*3.607 + (4.-n)*1.901 ) / (4.-1.)
+
+    flux_hlr = sparams[:,0]
+    prefactor = ((3.607-1.901)/3.) * n + (4.*1.901 - 1.*3.607)/3.
+    flux = 2.0*numpy.pi*prefactor*(hlr**2)*flux_hlr/cosmos_pix_scale**2
+    mask &= ( (flux > min_flux) & (flux < max_flux) )
+
+    w,=numpy.where(mask)
+
+    return cat['IDENT'][w]

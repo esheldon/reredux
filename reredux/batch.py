@@ -75,9 +75,13 @@ class BatchMaker(dict):
 
         self['job_name'] = self.get_job_name(fnum, beg, end)
 
-        vers=self.runconf['reredux_config']
-        self['meds_file'] = files.get_meds_file(vers, fnum)
-        self['psf_file'] = files.get_psf_file(vers, fnum)
+        runconf=self.runconf
+        vers=runconf['reredux_config']
+        self['meds_file'] = files.get_meds_file(vers, fnum,
+                                                type=runconf['sim_type'])
+
+        if runconf['sim_type'] == 'egret':
+            self['psf_file'] = files.get_psf_file(vers, fnum)
 
         self['config_file'] = files.get_config_file(self['run'])
         self['output_file'] = files.get_output_file(self['run'], fnum, beg, end)
@@ -107,8 +111,13 @@ class BatchMaker(dict):
 
     def _load_configs(self):
         self.runconf = files.read_config(self['run'])
-        self.reredux_conf = \
-                files.read_egret_config(self.runconf['reredux_config'])
+
+        if self.runconf['sim_type']=='egret':
+            self.reredux_conf = \
+                    files.read_egret_config(self.runconf['reredux_config'])
+        else:
+            self.reredux_conf = \
+                    files.read_wombat_config(self.runconf['reredux_config'])
         #self.reredux_conf = files.read_config(self.runconf['reredux_config'])
 
     def _set_global_seed(self):
@@ -187,7 +196,11 @@ class WQMaker(BatchMaker):
         return files.get_wq_file(self['run'], fnum, beg, end, missing=missing)
 
     def get_text(self):
-        return _wq_template % self
+
+        if self.runconf['sim_type']=='egret':
+            return _egret_wq_template % self
+        else:
+            return _wombat_wq_template % self
 
     def _format_walltime(self, hours):
         return ''
@@ -339,7 +352,7 @@ exit $status
 """
 
 
-_wq_template="""
+_egret_wq_template="""
 
 job_name: %(job_name)s
 
@@ -367,6 +380,38 @@ command: |
     python -u $(which ngmixit)         \\
             --seed ${seed}             \\
             --psf-file=${psf_file}     \\
+            --fof-range $beg,$end      \\
+            ${config_file}             \\
+            ${output_file}             \\
+            ${meds_file}
+"""
+
+_wombat_wq_template="""
+
+job_name: %(job_name)s
+
+command: |
+    echo "working on host: $(hostname)"
+
+    . ~/shell_scripts/nsim2-prepare.sh
+
+    config_file=%(config_file)s
+    meds_file=%(meds_file)s
+
+    output_file=%(output_file)s
+
+    beg=%(beg)s
+    end=%(end)s
+
+    seed=%(seed)s
+
+    # we need to make the scratch directory
+    #tmpdir="$TMPDIR/ngmixit-$RANDOM"
+    #mkdir -p $tmpdir
+    #cd $tmpdir
+
+    python -u $(which ngmixit)         \\
+            --seed ${seed}             \\
             --fof-range $beg,$end      \\
             ${config_file}             \\
             ${output_file}             \\
