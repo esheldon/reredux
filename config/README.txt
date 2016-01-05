@@ -394,6 +394,11 @@ v05deep larger deep sim, 1,000,000
 
     # with cut on hugest galaxies, log(T) > 0
     # this and flag cuts removes 0.06%
+    # this is a small  number to cut, but I do fear this is still
+    # a selection effect.  It goes in the right direction: cut
+    # large galaxies means cut elliptical galaxies, since this
+    # is  not T_r
+    # try T_r!
 
         A[1,1] (-1.011e-05 +/- 3.617e-06) + (-1.11 +/ 0.001875) deltan
         A[1,2] (1.526e-06 +/- 1.937e-06) + (-0.0007876 +/ 0.001004) deltan

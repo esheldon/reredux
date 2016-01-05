@@ -7,14 +7,20 @@ from numpy import arange, sqrt, array, zeros
 
 import fitsio
 import esutil as eu
+from esutil.numpy_util import between
 
 from . import files
 
 S2N_SOFT=20.0
 
+MIN_LOG_T=-3.0
+#MAX_LOG_T=0.0
+MAX_LOG_T=-0.4
+#MAX_LOG_T=-0.3
+
 class Averager(dict):
     def __init__(self, run, fit_only=False, use_weights=False, use_cache=False,
-                 do_test=False, ntest=100000, show=False):
+                 do_test=False, ntest=100000, show=False, cuts=None):
 
         """
         this show is for the detrend fits
@@ -24,6 +30,8 @@ class Averager(dict):
         self['use_cache'] = use_cache
         self['fit_only'] = fit_only
         self['show'] = show
+
+        self['cuts'] = cuts
 
         self['do_test'] = do_test
         self['ntest'] = ntest
@@ -305,8 +313,6 @@ class Averager(dict):
 
         columns=self._get_columns()
 
-        columns += ['gauss_mcal_pars']
-
         print("reading columns:",columns)
 
         # if we get here and use_cache is specified, we are supposed to
@@ -319,18 +325,22 @@ class Averager(dict):
 
         data=files.read_collated(self['run'], columns=columns, rows=rows)
 
-        Tcol='%s_mcal_pars' % model
-        w,=numpy.where( (data['flags']==0) & (data[Tcol][:,4] < 0) )
+        print("cutting flags")
+        logic = data['flags']==0
+
+        if self['cuts'] is not None:
+            print("cutting: '%s'" % self['cuts'])
+            logic = logic & eval(self['cuts'])
+
+        w,=numpy.where( logic )
         print("    keeping %d/%d" % (w.size,data.size))
         data=data[w]
-
 
         return data
 
     def _cache_in_chunks(self):
 
         model=self['model']
-        Tcol='%s_mcal_pars' % model
 
         cache_file=get_cache_file(self['run'])
         print("cacheing to:",cache_file)
@@ -365,14 +375,15 @@ class Averager(dict):
 
                     data = hdu[columns][beg:end]
 
-                    w,=numpy.where(
-                        (data['flags']==0)
-                        & (data[Tcol][:,4] < 0)
-                    )
+                    logic = (data['flags']==0)
+                    if self['cuts'] is not None:
+                        #print("cutting: '%s'" % self['cuts'])
+                        logic = logic & eval(self['cuts'])
+
+                    w,=numpy.where(logic)
+
                     print("        %d/%d" % (w.size, data.size))
                     data=data[w]
-
-                    data=eu.numpy_util.remove_fields(data,s2n_col)
 
                     if first:
                         output.write(data)
@@ -637,7 +648,8 @@ class AveragerDetrend(AveragerRmean):
             '%s_mcal_R' % model,
             '%s_mcal_Rpsf' % model,
             '%s_mcal_dt_Rnoise' % model,
-            '%s_mcal_pars' % model,
+            '%s_s2n_r' % model,
+            '%s_log_T_r' % model,
             'shear_index',
             'flags'
         ]
