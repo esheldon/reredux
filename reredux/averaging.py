@@ -49,19 +49,33 @@ class Averager(dict):
         #self.shears = self['sconf']['shear']['shears']
         self.shears = self['sconf']['shearmaker']['shears']
 
-        self._load_data()
+        if not self['fit_only']:
+            self._load_data()
 
     def go(self):
+        print("fit only:",self['fit_only'])
         if self['fit_only']:
             self.means = self._read_means()
         else:
             self.means= self._get_averages()
             self._write_means()
 
+        '''
+        maxdiff=0.0015
+        w,=numpy.where(
+            (numpy.abs(self.means['shear'][:,0] - self.means['shear_true'][:,0]) < maxdiff)
+            &
+            (numpy.abs(self.means['shear'][:,1] - self.means['shear_true'][:,1]) < maxdiff)
+        )
+        means_use=self.means[w]
+        print("kept means %d/%d" % (w.size,self.means.size))
+        self.fits = fit_m_c(means_use)
+        '''
         self.fits = fit_m_c(self.means)
         #self.Q=calc_q(self.fits)
         #print("  Q: %d" % self.Q)
 
+        #self.fits_onem = fit_m_c(means_use, onem=True)
         self.fits_onem = fit_m_c(self.means, onem=True)
         #self.Q_onem=calc_q(self.fits_onem)
 
