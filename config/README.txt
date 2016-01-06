@@ -392,13 +392,13 @@ v05deep larger deep sim, 1,000,000
     - mcal-v14s01
         extra noise to get to mode s/n ~12
 
+    # the following goes away using T_r
     # with cut on hugest galaxies, log(T) > 0
     # this and flag cuts removes 0.06%
     # this is a small  number to cut, but I do fear this is still
     # a selection effect.  It goes in the right direction: cut
     # large galaxies means cut elliptical galaxies, since this
     # is  not T_r
-    # try T_r!
 
         A[1,1] (-1.011e-05 +/- 3.617e-06) + (-1.11 +/ 0.001875) deltan
         A[1,2] (1.526e-06 +/- 1.937e-06) + (-0.0007876 +/ 0.001004) deltan
@@ -435,6 +435,20 @@ v05deep larger deep sim, 1,000,000
        c1: -2.288e-05 +/- 2.580e-05
        c2:  7.922e-06 +/- 2.579e-05
 
+
+    # s/n > 10 and fixes for selection effects (which are fairly small at s/n=10)
+    m1: -2.128e-04 +/- 7.541e-04 c1: -1.892e-05 +/- 2.616e-05  r1: 0.0335
+    m2: -5.454e-04 +/- 7.490e-04 c2: 4.918e-06 +/- 2.649e-05  r2: 0.0593
+    m: -3.825e-04 +/- 5.327e-04
+    c1: -1.918e-05 +/- 2.639e-05
+    c2: 5.207e-06 +/- 2.638e-05
+
+    # s/n > 15 and fixes for selection effect. Undercorrecting
+    m1: -1.808e-03 +/- 8.281e-04 c1: -1.254e-05 +/- 2.873e-05  r1: 0.0335
+    m2: -2.914e-03 +/- 8.346e-04 c2: 4.164e-06 +/- 2.952e-05  r2: 0.0593
+    m: -2.369e-03 +/- 5.895e-04
+    c1: -1.334e-05 +/- 2.921e-05
+    c2: 5.176e-06 +/- 2.920e-05
 
             
 

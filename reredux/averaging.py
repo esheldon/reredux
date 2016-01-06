@@ -12,17 +12,13 @@ from esutil.numpy_util import between
 
 from . import files
 
+SHAPENOISE=0.22
 S2N_SOFT=20.0
-
-MIN_LOG_T=-3.0
-#MAX_LOG_T=0.0
-MAX_LOG_T=-0.4
-#MAX_LOG_T=-0.3
 
 class Averager(dict):
     def __init__(self, run,
                  fit_only=False,
-                 use_weights=False,
+                 weights=None,
                  use_cache=False,
                  do_test=False,
                  ntest=100000,
@@ -34,7 +30,7 @@ class Averager(dict):
         this show is for the detrend fits
         """
         self['run'] = run
-        self['use_weights'] = use_weights
+        self['weights'] = weights
         self['use_cache'] = use_cache
         self['fit_only'] = fit_only
         self['select_cosmos'] = select_cosmos
@@ -45,7 +41,7 @@ class Averager(dict):
         self['do_test'] = do_test
         self['ntest'] = ntest
 
-        if self['use_weights']:
+        if self['weights'] is not None:
             print("Using weights")
 
         conf=files.read_config(run)
@@ -216,7 +212,13 @@ class Averager(dict):
         means=get_mean_struct(nind)
 
         model=self['model_pars'].keys()[0]
-        wfield = '%s_mcal_s2n_r' % model
+
+        wts = self._get_weights(data)
+
+        if self['weights']=='s2n':
+            wfield = '%s_mcal_s2n_r' % model
+        elif self['weights']=='noise':
+            wfield = '%s_mcal_g_cov' % model
 
         Rmean = zeros( (2,2) )
         psf_corr = zeros( 2 )
@@ -229,26 +231,21 @@ class Averager(dict):
 
             w=rev[ rev[i]:rev[i+1] ]
 
-            s2n = data[wfield][w]
-            wts = self._get_s2n_weights(s2n)
-            #wts = 1.0/(1.0 + (S2N_SOFT/s2n)**2 )
-
-            wts2=wts**2
-            wsum=wts.sum()
+            wts2=wts[w]**2
+            wsum=wts[w].sum()
 
             shear_true = shears[i]
 
             for ii in xrange(2):
-                gmean[ii] = (g[w,ii]*wts).sum()/wsum
+                gmean[ii] = (g[w,ii]*wts[w]).sum()/wsum
                 gerr2 = ( wts2 * (g[w,ii]-gmean[ii])**2 ).sum()
                 gerr[ii] = numpy.sqrt(gerr2)
-                psf_corr[ii]  = (gpsf[w,ii]*Rpsf[w,ii]*wts).sum()/wsum
+                psf_corr[ii]  = (gpsf[w,ii]*Rpsf[w,ii]*wts[w]).sum()/wsum
 
                 for jj in xrange(ii,2):
-                    Rmean[ii,jj] = (R[w,ii,jj]*wts).sum()/wsum
+                    Rmean[ii,jj] = (R[w,ii,jj]*wts[w]).sum()/wsum
                     if jj != ii:
                         Rmean[jj,ii] = Rmean[ii,jj]
-
 
             Rinv = numpy.linalg.inv(Rmean)
 
@@ -294,19 +291,41 @@ class Averager(dict):
             'flags'
         ]
 
-        if self['use_weights']:
+        if self['weights'] == 's2n':
             columns += ['%s_mcal_s2n_r' % model]
+        elif self['weights'] == 'noise':
+            columns += ['%s_mcal_g_cov' % model]
+
 
         return columns
 
 
 
-    def _get_s2n_weights(s2n):
+    def _get_noise_weights(self, g_cov):
+        covsum = g_cov[:,0,0] + g_cov[:,1,1]
+
+        weights = 1.0/(2*SHAPENOISE**2 + covsum)
+        return weights
+
+    def _get_weights(self, data):
+        model=self['model']
+        if self['weights'] == 's2n':
+            col = '%s_mcal_s2n_r' % model
+            s2n = data[col]
+            return self._get_s2n_weights(s2n)
+        elif self['weights']=='noise':
+            col = '%s_mcal_g_cov' % model
+            cov = data[col]
+            return self._get_noise_weights(cov)
+        else:
+            raise RuntimError("bad weights: '%s'" % self['weights'])
+
+    def _get_s2n_weights(self, s2n):
         wts = 1.0/(1.0 + (S2N_SOFT/s2n)**2 )
         return wts
 
     def _get_averages(self, show_progress=False):
-        if self['use_weights']:
+        if self['weights'] is not None:
             return self._get_averages_weighted(show_progress=show_progress)
         else:
             return self._get_averages_noweight(show_progress=show_progress)
@@ -332,6 +351,7 @@ class Averager(dict):
 
         data=fitsio.read(cache_file, rows=rows)
 
+        data=self._process_read_data(data)
         return data
 
     def _get_selection_effect_crap(self, data, index):
@@ -404,14 +424,6 @@ class Averager(dict):
 
         gvals = data[gfield]
 
-        """
-        g1tot = numpy.zeros(data.size*2)
-        g2tot = numpy.zeros(data.size*2)
-        g1tot[0:data.size] = data[gfield][:,0]
-        g1tot[data.size:] = -data[gfield][:,0]
-        g2tot[0:data.size] = data[gfield][:,1]
-        g2tot[data.size:] = -data[gfield][:,1]
-        """
         g1tot = gvals[:,0]
         g2tot = gvals[:,1]
 
@@ -449,10 +461,74 @@ class Averager(dict):
         print()
         return sel
 
+
+    def _get_weighting_effect(self, data):
+
+        shear=0.05
+
+        model=self['model']
+        gfield = '%s_mcal_g' % model
+
+        gvals = data[gfield]
+
+        g1tot = gvals[:,0]# - gvals[:,0].mean()
+        g2tot = gvals[:,1]# - gvals[:,1].mean()
+
+        sg1,junk = ngmix.shape.shear_reduced(g1tot,
+                                             g2tot,
+                                             shear,
+                                             0.0)
+        junk,sg2 = ngmix.shape.shear_reduced(g1tot,
+                                             g2tot,
+                                             0.0,
+                                             shear)
+        '''
+        sg1,sg2 = ngmix.shape.shear_reduced(g1tot,
+                                            g2tot,
+                                            shear,
+                                            shear)
+        '''
+
+
+        weights = self._get_weights(data)
+
+        s1res=eu.stat.get_stats(sg1)
+        s2res=eu.stat.get_stats(sg2)
+
+        ws1res=eu.stat.get_stats(sg1, weights=weights)
+        ws2res=eu.stat.get_stats(sg2, weights=weights)
+
+        mean1 = s1res['mean']
+        mean2 = s2res['mean']
+
+        wmean1 = ws1res['mean']
+        wmean2 = ws2res['mean']
+
+        err1 = s1res['err']
+        err2 = s2res['err']
+
+        werr1 = ws1res['err']
+        werr2 = ws2res['err']
+
+        print()
+        print("  mean meas: %g +/- %g  %g +/- %g" % (mean1,err1,mean2,err2))
+        print("w mean meas: %g +/- %g  %g +/- %g" % (wmean1,werr1,wmean2,werr2))
+
+        sel=numpy.zeros(2)
+        sel[0]=mean1/wmean1
+        sel[1]=mean2/wmean2
+
+        print("weight sel:",sel)
+        print()
+        return sel
+
     def _select(self, data):
 
         if not self['select_cosmos'] and self['cuts'] is None:
             return None
+
+        if self['weights'] is not None:
+            raise RuntimeError("don't ask for weights and cuts")
 
         # some cut on cosmos goodness
         if self['select_cosmos']:
@@ -506,13 +582,22 @@ class Averager(dict):
         print("        keeping %d/%d from flags" % (w.size,data.size))
         data=data[w]
 
+        data=self._process_read_data(data)
+
+        return data
+
+    def _process_read_data(self, data):
+
+        self._sel = None
+
         w=self._select(data)
         if w is not None:
             self._sel = self._get_selection_effect(data, w)
             #self._sel = numpy.ones(2)
             data=data[w]
         else:
-            self._sel = numpy.ones(2)
+            if self['weights'] is not None:
+                self._sel = self._get_weighting_effect(data)
 
         return data
 
@@ -588,6 +673,33 @@ class Averager(dict):
 
 
 class AveragerRmean(Averager):
+    def _get_arrays(self, data):
+
+        print("getting arrays")
+        model=self['model']
+
+        gfield = '%s_mcal_g' % model
+        gpsf_field = '%s_mcal_gpsf' % model
+
+        g = data[gfield]
+        gpsf = data[gpsf_field]
+
+        return g, gpsf
+
+
+    def _get_R(self, data):
+
+        print("getting R")
+        model=self['model']
+
+        Rfield = '%s_mcal_R' % model
+        Rpsf_field = '%s_mcal_Rpsf' % model
+
+        R = data[Rfield].mean(axis=0)
+        Rpsf = data[Rpsf_field].mean(axis=0)
+
+        return R, Rpsf
+
     def _get_averages_noweight(self, show_progress=False):
 
         data=self.data
@@ -597,16 +709,14 @@ class AveragerRmean(Averager):
         h,rev = eu.stat.histogram(data['shear_index'], rev=True)
         nind = h.size
 
-        g, gpsf, R, Rpsf = self._get_arrays()
-
-        g[:,0] *= self._sel[0]
-        g[:,1] *= self._sel[1]
-
-        Rmean = R.mean(axis=0)
-
-        Rpsf_mean = Rpsf.mean(axis=0)
+        g, gpsf = self._get_arrays(data)
+        Rmean, Rpsf_mean = self._get_R(data)
         Rinv = numpy.linalg.inv(Rmean)
 
+        if self._sel is not None:
+            sel=self._sel
+        else:
+            self=ones(2)
 
         means=get_mean_struct(nind)
 
@@ -618,10 +728,12 @@ class AveragerRmean(Averager):
 
             shear_true = shears[i]
 
-            psf_corr  = (gpsf[w]).mean(axis=0)*Rpsf_mean
+            psf_corr  = Rpsf_mean*gpsf[w].mean(axis=0)
+            gmean     = g[w].mean(axis=0) - psf_corr
 
-            gmean     = g[w].mean(axis=0)
-            shear     = numpy.dot(Rinv, gmean-psf_corr)
+            gmean *= sel
+
+            shear     = numpy.dot(Rinv, gmean)
             shear_err = g[w].std(axis=0)/numpy.sqrt(w.size)
             shear_err = numpy.dot(Rinv, shear_err)
 
@@ -632,6 +744,7 @@ class AveragerRmean(Averager):
         return means
 
     def _get_averages_weighted(self, show_progress=False):
+        from numpy import newaxis
 
         data=self.data
 
@@ -640,30 +753,18 @@ class AveragerRmean(Averager):
         h,rev = eu.stat.histogram(data['shear_index'], rev=True)
         nind = h.size
 
-        g, gpsf, R, Rpsf = self._get_arrays()
+        weights = self._get_weights(data)
+
+        g, gpsf = self._get_arrays(data)
+        Rmean, Rpsf_mean = self._get_R_weighted(data,weights)
+        Rinv = numpy.linalg.inv(Rmean)
+
+        if self._sel is not None:
+            sel=self._sel
+        else:
+            sel=ones(2)
 
         means=get_mean_struct(nind)
-
-        model=self['model_pars'].keys()[0]
-        wfield = '%s_mcal_s2n_r' % model
-
-        Rmean = zeros( (2,2) )
-        psf_corr = zeros( 2 )
-        gmean = zeros( 2 )
-        gerr  = zeros( 2 )
-
-        s2n = data[wfield]
-        wts = self._get_s2n_weights(s2n)
-        wsum = wts.sum()
-
-        for ii in xrange(2):
-            Rpsf_mean[ii] = (Rpsf[:,ii]*wts).sum()/wsum
-            for jj in xrange(ii,2):
-                Rmean[ii,jj] = (R[:,ii,jj]*wts).sum()/wsum
-                if jj != ii:
-                    Rmean[jj,ii] = Rmean[ii,jj]
-
-        Rinv = numpy.linalg.inv(Rmean)
 
         for i in xrange(nind):
             if show_progress:
@@ -671,26 +772,23 @@ class AveragerRmean(Averager):
 
             w=rev[ rev[i]:rev[i+1] ]
 
-            s2n = data[wfield][w]
-            wts = self._get_s2n_weights(s2n)
-
-            wts2=wts**2
+            wts = weights[w]
             wsum=wts.sum()
+
+            wna=wts[:,newaxis]
+            wna2=wna**2
 
             shear_true = shears[i]
 
-            for ii in xrange(2):
-                gmean[ii] = (g[w,ii]*wts).sum()/wsum
-                gerr2 = ( wts2 * (g[w,ii]-gmean[ii])**2 ).sum()
-                gerr[ii] = numpy.sqrt(gerr2)
-                psf_corr[ii]  = Rpsf_mean*(gpsf[w,ii]*wts).sum()/wsum
+            psf_corr = Rpsf_mean*(gpsf[w]*wna).sum(axis=0)/wsum
+            gmean = (g[w]*wna).sum(axis=0)/wsum - psf_corr
 
-                for jj in xrange(ii,2):
-                    Rmean[ii,jj] = (R[w,ii,jj]*wts).sum()/wsum
-                    if jj != ii:
-                        Rmean[jj,ii] = Rmean[ii,jj]
+            gmean *= sel
 
-            shear     = numpy.dot(Rinv, gmean-psf_corr)
+            gerr2 = ( wna2 * (g[w]-gmean)**2 ).sum(axis=0)
+            gerr = numpy.sqrt(gerr2)/wsum
+
+            shear     = numpy.dot(Rinv, gmean)
             shear_err = numpy.dot(Rinv, gerr)
 
             means['shear'][i] = shear
@@ -701,12 +799,50 @@ class AveragerRmean(Averager):
 
 
 class AveragerDetrend(AveragerRmean):
-    def _get_Rnoise(self, weights=None, show=False, data=None):
-        import images
+
+    def _get_Rnoise_means(self, data):
+        """
+        means across objects
+        """
+
+        model=self['model']
+        dtR_field = '%s_mcal_dt_Rnoise' % model
+        dtR_psf_field = '%s_mcal_dt_Rnoise_psf' % model
+
+        Rdt = data[dtR_field].mean(axis=0)
+        if dtR_psf_field in data.dtype.names:
+            Rdt_psf = data['mcal_dt_Rnoise_psf'].mean(axis=0)
+        else:
+            print("No Rnoise psf found")
+            Rdt_psf = None
+
+        return Rdt, Rdt_psf
+
+
+    def _get_Rnoise_means_weighted(self, data, weights):
         from numpy import newaxis
 
-        if data is None:
-            data=self.data
+        model=self['model']
+        dtR_field = '%s_mcal_dt_Rnoise' % model
+        dtR_psf_field = '%s_mcal_dt_Rnoise_psf' % model
+
+        wsum = weights.sum()
+        wna2=weights[:,newaxis,newaxis]
+        wna3=weights[:,newaxis,newaxis,newaxis]
+
+        Rdt = (data[dtR_field]*wna3).sum(axis=0)/wsum
+
+        if dtR_psf_field in data.dtype.names:
+            Rdt_psf = (data['mcal_dt_Rnoise_psf']*wna2).sum(axis=0)/wsum
+        else:
+            print("No Rnoise psf found")
+            Rdt_psf = None
+
+        return Rdt, Rdt_psf
+
+
+    def _get_Rnoise(self, data, weights=None, show=False):
+        import images
 
         noise0 = self['target_noise']
         print("noise0:",noise0)
@@ -715,28 +851,10 @@ class AveragerDetrend(AveragerRmean):
         ndiff = target_noises - noise0
         xvals = 2*noise0*ndiff
 
-        model=self['model']
-        dtR_field = '%s_mcal_dt_Rnoise' % model
-        dtR_psf_field = '%s_mcal_dt_Rnoise_psf' % model
         if weights is not None:
-            wsum=weights.sum()
-            wna1=weights[:,newaxis]
-            wna2=weights[:,newaxis,newaxis]
-
-            Rdt = (data[dtR_field]*wna2).sum(axis=0)/wsum
-
-            if dtR_psf_field in data.dtype.names:
-                Rdt_psf = (data['mcal_dt_Rnoise_psf']*wna1).sum(axis=0)/wsum
-            else:
-                print("No Rnoise psf found")
-                Rdt_psf = None
+            Rdt, Rdt_psf = self._get_Rnoise_means_weighted(data, weights)
         else:
-            Rdt = data[dtR_field].mean(axis=0)
-            if dtR_psf_field in data.dtype.names:
-                Rdt_psf = data['mcal_dt_Rnoise_psf'].mean(axis=0)
-            else:
-                print("No Rnoise psf found")
-                Rdt_psf = None
+            Rdt, Rdt_psf = self._get_Rnoise_means(data)
 
         plot_psf=True
         if Rdt_psf is None:
@@ -793,32 +911,48 @@ class AveragerDetrend(AveragerRmean):
 
         return Rnoise, Rnoise_psf
 
-    def _get_arrays(self, data=None):
+    def _get_R(self, data):
 
-        if data is None:
-            data=self.data
-
-        print("getting arrays")
+        print("getting R")
         model=self['model']
-
-        gfield = '%s_mcal_g' % model
-        gpsf_field = '%s_mcal_gpsf' % model
 
         Rfield = '%s_mcal_R' % model
         Rpsf_field = '%s_mcal_Rpsf' % model
 
+        R = data[Rfield].mean(axis=0)
+        Rpsf = data[Rpsf_field].mean(axis=0)
 
-        g = data[gfield]
-        gpsf = data[gpsf_field]
-        R = data[Rfield].copy()
-        Rpsf = data[Rpsf_field].copy()
-
-        Rnoise, Rnoise_psf = self._get_Rnoise(data=data)
+        Rnoise, Rnoise_psf = self._get_Rnoise(data)
 
         R -= Rnoise
         Rpsf -= Rnoise_psf
 
-        return g, gpsf, R, Rpsf
+        return R, Rpsf
+
+
+    def _get_R_weighted(self, data, weights):
+        from numpy import newaxis
+
+        print("getting weighted R")
+        model=self['model']
+
+        wsum=weights.sum()
+
+        wna1=weights[:,newaxis]
+        wna2=weights[:,newaxis,newaxis]
+
+        Rfield = '%s_mcal_R' % model
+        Rpsf_field = '%s_mcal_Rpsf' % model
+
+        R = (data[Rfield]*wna2).sum(axis=0)/wsum
+        Rpsf = (data[Rpsf_field]*wna1).sum(axis=0)/wsum
+
+        Rnoise, Rnoise_psf = self._get_Rnoise(data, weights=weights)
+
+        R -= Rnoise
+        Rpsf -= Rnoise_psf
+
+        return R, Rpsf
 
 
     def _get_columns(self):
@@ -845,8 +979,10 @@ class AveragerDetrend(AveragerRmean):
                 columns.append(Rpcol)
 
 
-        if self['use_weights']:
+        if self['weights'] == 's2n':
             columns += ['%s_mcal_s2n_r' % model]
+        elif self['weights'] == 'noise':
+            columns += ['%s_mcal_g_cov' % model]
 
         return columns
 
@@ -893,8 +1029,10 @@ class AveragerSimn(Averager):
             'flags'
         ]
 
-        if self['use_weights']:
+        if self['weights'] == 's2n':
             columns += ['%s_mcal_s2n_r' % model]
+        elif self['weights']=='noise':
+            columns += ['%s_mcal_g_cov' % model]
 
         return columns
 
@@ -939,7 +1077,7 @@ class AveragerRef(Averager):
         self['refrun']=refrun
         super(AveragerRef,self).__init__(run, **kw)
 
-        if self['use_weights']:
+        if self['weights'] is not None:
             raise RuntimeError("weights don't work when using "
                                "a reference set")
 
