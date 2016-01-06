@@ -417,15 +417,16 @@ class Averager(dict):
 
     def _get_selection_effect(self, data, index):
 
-        shear=0.05
+        # mean |shear| from sims; would want to adjust?
+        shear=0.045
 
         model=self['model']
         gfield = '%s_mcal_g' % model
 
         gvals = data[gfield]
 
-        g1tot = gvals[:,0]
-        g2tot = gvals[:,1]
+        g1tot = gvals[:,0] - gvals[:,0].mean()
+        g2tot = gvals[:,1] - gvals[:,1].mean()
 
         sg1,junk = ngmix.shape.shear_reduced(g1tot,
                                              g2tot,
@@ -458,13 +459,14 @@ class Averager(dict):
         sel[1]=smean2/smean2_sel
 
         print("sel:",sel)
+        print("sel mean:",sel.mean())
         print()
         return sel
 
 
     def _get_weighting_effect(self, data):
 
-        shear=0.05
+        shear=0.045
 
         model=self['model']
         gfield = '%s_mcal_g' % model
@@ -593,7 +595,6 @@ class Averager(dict):
         w=self._select(data)
         if w is not None:
             self._sel = self._get_selection_effect(data, w)
-            #self._sel = numpy.ones(2)
             data=data[w]
         else:
             if self['weights'] is not None:
