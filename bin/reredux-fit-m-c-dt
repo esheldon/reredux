@@ -38,16 +38,21 @@ def main():
     cls = reredux.averaging.AveragerDetrend
     av=cls(
         args.run,
-        do_test=args.test,
-        ntest=args.ntest,
-        fit_only=args.fit_only,
         weights=args.weights,
-        cuts=args.cuts,
-        select_cosmos=args.select_cosmos,
-        use_cache=args.cache,
         show=args.show,
     )
-    av.go()
+
+    if not args.fit_only:
+        data=av.read_data(
+            use_cache=args.cache,
+            do_test=args.test,
+            ntest=args.ntest,
+            select_cosmos=args.select_cosmos,
+            cuts=args.cuts,
+        )
+        av.do_averages(data)
+
+    av.do_fits()
     av.doplot(args)
 
 main()

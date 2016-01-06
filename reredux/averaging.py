@@ -14,12 +14,11 @@ from . import files
 
 SHAPENOISE=0.22
 S2N_SOFT=20.0
+DEFAULT_TEST_SIZE=100000
 
 class Averager(dict):
     def __init__(self, run,
-                 fit_only=False,
                  weights=None,
-                 use_cache=False,
                  do_test=False,
                  ntest=100000,
                  show=False,
@@ -31,8 +30,6 @@ class Averager(dict):
         """
         self['run'] = run
         self['weights'] = weights
-        self['use_cache'] = use_cache
-        self['fit_only'] = fit_only
         self['select_cosmos'] = select_cosmos
         self['show'] = show
 
@@ -54,38 +51,16 @@ class Averager(dict):
         #self.shears = self['sconf']['shear']['shears']
         self.shears = self['sconf']['shearmaker']['shears']
 
-        if self['select_cosmos']:
-            self._good_cosmos_ids = get_good_cosmos()
 
-        if not self['fit_only']:
-            self._load_data()
+    def do_averages(self, data):
+        means= self._get_averages(data)
+        self._write_means(means)
 
+    def do_fits(self):
+        self.means = self._read_means()
 
-    def go(self):
-        if self['fit_only']:
-            self.means = self._read_means()
-        else:
-            self.means= self._get_averages()
-            self._write_means()
-
-        '''
-        maxdiff=0.0015
-        w,=where(
-            (numpy.abs(self.means['shear'][:,0] - self.means['shear_true'][:,0]) < maxdiff)
-            &
-            (numpy.abs(self.means['shear'][:,1] - self.means['shear_true'][:,1]) < maxdiff)
-        )
-        means_use=self.means[w]
-        print("kept means %d/%d" % (w.size,self.means.size))
-        self.fits = fit_m_c(means_use)
-        '''
         self.fits = fit_m_c(self.means)
-        #self.Q=calc_q(self.fits)
-        #print("  Q: %d" % self.Q)
-
-        #self.fits_onem = fit_m_c(means_use, onem=True)
         self.fits_onem = fit_m_c(self.means, onem=True)
-        #self.Q_onem=calc_q(self.fits_onem)
 
         self._write_fits(self.fits)
 
@@ -161,16 +136,14 @@ class Averager(dict):
         if args.show:
             tab.show(width=1000, height=1000)
 
-    def _get_averages_noweight(self, show_progress=False):
-
-        data=self.data
+    def _get_averages_noweight(self, data, show_progress=False):
 
         shears = self.shears
 
         h,rev = eu.stat.histogram(data['shear_index'], rev=True)
         nind = h.size
 
-        g, gpsf, R, Rpsf = self._get_arrays()
+        g, gpsf, R, Rpsf = self._get_arrays(data)
 
         means=get_mean_struct(nind)
 
@@ -198,16 +171,14 @@ class Averager(dict):
 
         return means
 
-    def _get_averages_weighted(self, show_progress=False):
-
-        data=self.data
+    def _get_averages_weighted(self, data, show_progress=False):
 
         shears = self.shears
 
         h,rev = eu.stat.histogram(data['shear_index'], rev=True)
         nind = h.size
 
-        g, gpsf, R, Rpsf = self._get_arrays()
+        g, gpsf, R, Rpsf = self._get_arrays(data)
 
         means=get_mean_struct(nind)
 
@@ -258,10 +229,7 @@ class Averager(dict):
 
         return means
 
-    def _get_arrays(self, data=None):
-
-        if data is None:
-            data=self.data
+    def _get_arrays(self, data):
 
         print("getting arrays")
         model=self['model']
@@ -324,41 +292,17 @@ class Averager(dict):
         wts = 1.0/(1.0 + (S2N_SOFT/s2n)**2 )
         return wts
 
-    def _get_averages(self, show_progress=False):
+    def _get_averages(self, data, show_progress=False):
         if self['weights'] is not None:
-            return self._get_averages_weighted(show_progress=show_progress)
+            return self._get_averages_weighted(data, show_progress=show_progress)
         else:
-            return self._get_averages_noweight(show_progress=show_progress)
-
-    def _load_data(self):
-        if self['use_cache']:
-            data = self._read_cached_data()
-        else:
-            data = self._read_data()
-        self.data=data
-
-    def _read_cached_data(self):
-        cache_file=get_cache_file(self['run'])
-        if not os.path.exists(cache_file):
-            self._cache_in_chunks()
-
-        print("reading cache:",cache_file)
-
-        if self['do_test']:
-            rows=arange(self['ntest'])
-        else:
-            rows=None
-
-        data=fitsio.read(cache_file, rows=rows)
-
-        data=self._process_read_data(data)
-        return data
+            return self._get_averages_noweight(data, show_progress=show_progress)
 
     def _get_selection_effect_crap(self, data, index):
 
         shear=0.04
 
-        g, gpsf, R, Rpsf = self._get_arrays(data=data)
+        g, gpsf, R, Rpsf = self._get_arrays(data)
 
         Rmean = R.mean(axis=0)
         Rpsf_mean = Rpsf.mean(axis=0)
@@ -524,55 +468,73 @@ class Averager(dict):
         print()
         return sel
 
-    def _select(self, data):
 
-        if not self['select_cosmos'] and self['cuts'] is None:
-            return None
+    def read_data(self, **kw):
+        """
+        read data from original for or cache
 
-        if self['weights'] is not None:
-            raise RuntimeError("don't ask for weights and cuts")
-
-        # some cut on cosmos goodness
-        if self['select_cosmos']:
-            print("    cutting to good cosmos")
-            mc,mdata=eu.numpy_util.match_multi(
-                self._good_cosmos_ids,
-                data['cosmos_id']
-            )
-
-            print("        keeping %d/%d good cosmos" % (mdata.size,data.size))
-
-            logic = numpy.zeros(data.size, dtype=bool)
-            logic[mdata] = True
+        parameters
+        ----------
+        use_cache: bool
+            Read from the cache, creating it if needed.  Objects
+            with flags are removed during cache creation
+        do_test: bool
+            Do a quick test, reading only a subset of data
+        ntest: int
+            Number to read for test
+        cuts: string
+            Cuts to apply
+        select_cosmos: bool
+            Make cuts based on cosmos catalog
+        """
+        use_cache=kw.get("use_cache",False)
+        if use_cache:
+            data = self._read_cached_data(**kw)
         else:
-            logic = numpy.ones(data.size, dtype=bool)
+            data = self._read_uncached_data(**kw)
+
+        return data
+
+    def _determine_test(self, **kw):
+        do_test=kw.get('do_test',False)
+        if do_test:
+            ntest=kw.get('ntest',DEFAULT_TEST_SIZE)
+
+        return do_test, ntest
+
+    def _read_cached_data(self, **kw):
+        """
+        selection occurs after cacheing
+        """
+        cache_file=get_cache_file(self['run'])
+        if not os.path.exists(cache_file):
+            self._cache_in_chunks()
+
+        print("reading cache:",cache_file)
+
+        do_test, ntest = self._determine_test(**kw)
+        if do_test:
+            rows=arange(ntest)
+        else:
+            rows=None
+
+        data=fitsio.read(cache_file, rows=rows)
+
+        data=self._process_read_data(data, **kw)
+        return data
 
 
-        # optional additional cuts given on the command line
-        if self['cuts'] is not None:
-            print("    cutting: '%s'" % self['cuts'])
-            tlogic = eval(self['cuts'])
-            w,=where(tlogic)
-            print("        keeping %d/%d from cuts" % (w.size,data.size))
-
-            logic = logic & tlogic
-
-        w,=where( logic )
-        print("    keeping %d/%d" % (w.size,data.size))
-
-        return w
-
-    def _read_data(self):
-
+    def _read_uncached_data(self, **kw):
+        """
+        we select after reading
+        """
         columns=self._get_columns()
 
         print("reading columns:",columns)
 
-        # if we get here and use_cache is specified, we are supposed to
-        # read the whole thing and write the cache, *then* read a test
-        # subset
-        if self['do_test'] and not self['use_cache']:
-            rows=arange(self['ntest'])
+        do_test, ntest = self._determine_test(**kw)
+        if do_test:
+            rows=arange(ntest)
         else:
             rows=None
 
@@ -584,21 +546,20 @@ class Averager(dict):
         print("        keeping %d/%d from flags" % (w.size,data.size))
         data=data[w]
 
-        data=self._process_read_data(data)
+        data=self._process_read_data(data, **kw)
 
         return data
 
-    def _process_read_data(self, data):
+    def _process_read_data(self, data, **kw):
 
         self._sel = None
 
-        w=self._select(data)
+        w=self._select(data, **kw)
         if w is not None:
             self._sel = self._get_selection_effect(data, w)
             data=data[w]
-        else:
-            if self['weights'] is not None:
-                self._sel = self._get_weighting_effect(data)
+        elif self['weights'] is not None:
+            self._sel = self._get_weighting_effect(data)
 
         return data
 
@@ -642,9 +603,9 @@ class Averager(dict):
                     print("        keeping %d/%d from flags" % (w.size,data.size))
                     data=data[w]
 
-                    w=self._select(data)
-                    if w is not None:
-                        data=data[w]
+                    #w=self._select(data)
+                    #if w is not None:
+                    #    data=data[w]
 
                     if first:
                         output.write(data)
@@ -654,16 +615,60 @@ class Averager(dict):
 
                     beg = beg + chunksize
 
+    def _select(self, data, **kw):
+
+        select_cosmos=kw.get('select_cosmos',False)
+        cuts=kw.get('cuts',None)
+        if not select_cosmos and cuts is None:
+            return None
+
+        if select_cosmos and not hasattr(self,'_good_cosmos_ids'):
+            self._good_cosmos_ids = get_good_cosmos()
+
+
+        if self['weights'] is not None:
+            raise RuntimeError("don't ask for weights and cuts")
+
+        # some cut on cosmos goodness
+        if select_cosmos:
+            print("    cutting to good cosmos")
+            mc,mdata=eu.numpy_util.match_multi(
+                self._good_cosmos_ids,
+                data['cosmos_id']
+            )
+
+            print("        keeping %d/%d good cosmos" % (mdata.size,data.size))
+
+            logic = numpy.zeros(data.size, dtype=bool)
+            logic[mdata] = True
+        else:
+            logic = numpy.ones(data.size, dtype=bool)
+
+
+        # optional additional cuts given on the command line
+        if cuts is not None:
+            print("    cutting: '%s'" % cuts)
+            tlogic = eval(cuts)
+            w,=where(tlogic)
+            print("        keeping %d/%d from cuts" % (w.size,data.size))
+
+            logic = logic & tlogic
+
+        w,=where( logic )
+        print("    keeping %d/%d" % (w.size,data.size))
+
+        return w
+
 
     def _read_means(self):
         return files.read_fit_file(self['run'], extra='shear-means')
 
-    def _write_means(self):
+    def _write_means(self, means):
         fname=files.get_fit_file(self['run'], extra='shear-means')
         eu.ostools.makedirs_fromfile(fname)
 
         print("writing:",fname)
-        fitsio.write(fname, self.means, clobber=True)
+        fitsio.write(fname, means, clobber=True)
 
     def _write_fits(self, fits):
         fname=files.get_fit_file(self['run'], extra='fit-m-c')
@@ -701,9 +706,7 @@ class AveragerRmean(Averager):
 
         return R, Rpsf
 
-    def _get_averages_noweight(self, show_progress=False):
-
-        data=self.data
+    def _get_averages_noweight(self, data, show_progress=False):
 
         shears = self.shears
 
@@ -744,10 +747,8 @@ class AveragerRmean(Averager):
 
         return means
 
-    def _get_averages_weighted(self, show_progress=False):
+    def _get_averages_weighted(self, data, show_progress=False):
         from numpy import newaxis
-
-        data=self.data
 
         shears = self.shears
 
@@ -989,10 +990,7 @@ class AveragerDetrend(AveragerRmean):
 
 
 class AveragerSimn(Averager):
-    def _get_arrays(self, data=None):
-
-        if data is None:
-            data=self.data
+    def _get_arrays(self, data):
 
         print("getting arrays")
         model=self['model']
@@ -1038,13 +1036,9 @@ class AveragerSimn(Averager):
         return columns
 
 class AveragerSimnRmean(AveragerSimn):
-    def _get_arrays(self, data=None):
-
-        if data is None:
-            data=self.data
+    def _get_arrays(self, data):
 
         print("subtracting Rnoise_mean")
-        data=self.data
 
         print("getting arrays")
         model=self['model']
@@ -1094,12 +1088,9 @@ class AveragerRef(Averager):
 
         super(AveragerRef,self)._load_data()
 
-    def _get_arrays(self, data=None):
+    def _get_arrays(self, data):
 
-        if data is None:
-            data=self.data
-
-        g, gpsf, R, Rpsf = super(AveragerRef,self)._get_arrays()
+        g, gpsf, R, Rpsf = super(AveragerRef,self)._get_arrays(data)
 
         model=self['model']
 
@@ -1122,13 +1113,10 @@ class AveragerRefFix(AveragerRef):
     measurement
     """
 
-    def _get_arrays(self, data=None):
-
-        if data is None:
-            data=self.data
+    def _get_arrays(self, data):
 
         # note this is calling the parent of the parent
-        g, gpsf, R, Rpsf = super(AveragerRef,self)._get_arrays()
+        g, gpsf, R, Rpsf = super(AveragerRef,self)._get_arrays(data)
 
         print("    calculating R fix")
         model=self['model']
