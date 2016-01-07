@@ -5,6 +5,7 @@ from distutils.core import setup
 scripts=[
     'reredux-make-batch',
     'reredux-collate',
+    'reredux-collate-wombat',
     'reredux-average',
     'reredux-vary-deepsize',
     'reredux-fit-prior',

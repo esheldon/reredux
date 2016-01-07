@@ -90,6 +90,10 @@ def get_wombat_data_dir(version):
     basedir = get_wombat_basedir()
     return os.path.join(basedir, version)
 
+def get_truth_file(version, fnum):
+    d = get_wombat_data_dir(version)
+    fname = 'truth_catalog-%s-%04d.fits' % (version,fnum)
+    return os.path.join(d,fname)
 
 
 def get_meds_file(version, fnum, type='egret'):

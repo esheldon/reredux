@@ -13,12 +13,14 @@ global_seed: 10807
 fitter_type: "metacal-detrend-ngmix-boot"
 imageio_type: "meds-simp-sim"
 
-# original is ~0.0877
-target_noise: 0.25
+# original noises vary:
+#     mean is 0.062356718, min/max is 0.044916466/0.077410869
+#
+# this will be fairly high s/n
+target_noise: 0.08
 
 # factors from nsim
-# fac = [ 0.705,  0.71, 0.715])/0.70 = [ 1.00714286,  1.01428571,  1.02142857]
-detrend_noises: [ 0.25178572,  0.25357143,  0.25535714]
+detrend_factors: [ 1.00714286,  1.01428571,  1.02142857 ]
 
 fit_me_galaxy: False
 fit_coadd_galaxy: True
@@ -73,24 +75,23 @@ model_pars:
     T:
       type: "gmixnd"
 
-      file: "${REREDUX_OUTPUTS_DIR}/max-v05d02/fitprior/max-v05d02-fitprior-log_T.fits"
+      file: "${REREDUX_OUTPUTS_DIR}/max-w002t01/fitprior/max-w002t01-fitprior-log_T.fits"
       cov_factor: 1.44
 
     counts:
       type: "gmixnd"
 
-      file: "${REREDUX_OUTPUTS_DIR}/max-v05d02/fitprior/max-v05d02-fitprior-log_F.fits"
+      file: "${REREDUX_OUTPUTS_DIR}/max-w002t01/fitprior/max-w002t01-fitprior-log_F.fits"
       cov_factor: 1.44
 
     cen:
       type: "dgauss"
       width: 0.27
 
-# at bnl
 time_per: 1.10
 
-# all
-nper: 5000
+# all is 10000
+nper: 2000
 
 # checkpoint times in minutes, needed for condor in case we pass a batch system
 # limit such as in the condor scavenge.

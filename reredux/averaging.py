@@ -501,6 +501,7 @@ class Averager(dict):
         print("sel:",sel)
         print("sel mean:",sel.mean())
         print()
+        #return sel.mean()
         return sel
 
 
@@ -531,6 +532,82 @@ class Averager(dict):
                                             shear,
                                             shear)
         '''
+
+
+        weights = self._get_weights(data)
+
+        s1res=eu.stat.get_stats(sg1)
+        s2res=eu.stat.get_stats(sg2)
+
+        ws1res=eu.stat.get_stats(sg1, weights=weights)
+        ws2res=eu.stat.get_stats(sg2, weights=weights)
+
+        mean1 = s1res['mean']
+        mean2 = s2res['mean']
+
+        wmean1 = ws1res['mean']
+        wmean2 = ws2res['mean']
+
+        err1 = s1res['err']
+        err2 = s2res['err']
+
+        werr1 = ws1res['err']
+        werr2 = ws2res['err']
+
+        print()
+        print("  mean meas: %g +/- %g  %g +/- %g" % (mean1,err1,mean2,err2))
+        print("w mean meas: %g +/- %g  %g +/- %g" % (wmean1,werr1,wmean2,werr2))
+
+        sel=numpy.zeros(2)
+        sel[0]=mean1/wmean1
+        sel[1]=mean2/wmean2
+
+        print("weight sel:",sel)
+        print()
+        return sel
+
+    def _get_weighting_effect_alt(self, data):
+
+        shear=0.045
+
+        model=self['model']
+        gfield = '%s_mcal_g' % model
+        Rfield = '%s_mcal_R' % model
+
+        R = data[Rfield]
+
+        print("getting Rnoise")
+        Rnoise, Rnoise_psf = self._get_Rnoise(data)
+
+        R11 = R[:,0,0].copy()
+        R22 = R[:,1,1].copy()
+
+        R11 -= Rnoise[0,0]
+        R22 -= Rnoise[1,1]
+
+        gvals = data[gfield]
+
+        g1 = gvals[:,0] - gvals[:,0].mean()
+        g2 = gvals[:,1] - gvals[:,1].mean()
+
+        print("making sheared")
+        sg1,junk = ngmix.shape.shear_reduced(g1,
+                                             g2,
+                                             shear*R11,
+                                             0.0)
+        junk,sg2 = ngmix.shape.shear_reduced(g1,
+                                             g2,
+                                             0.0,
+                                             shear*R22)
+
+        sg1_sel,junk = ngmix.shape.shear_reduced(g1[index],
+                                                 g2[index],
+                                                 shear*R11_sel,
+                                                 0.0)
+        junk,sg2_sel = ngmix.shape.shear_reduced(g1[index],
+                                                 g2[index],
+                                                 0.0,
+                                                 shear*R22_sel)
 
 
         weights = self._get_weights(data)

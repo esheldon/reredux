@@ -179,7 +179,10 @@ class LSFMaker(BatchMaker):
         return files.get_lsf_file(self['run'], fnum, beg, end, missing=missing)
 
     def get_text(self):
-        return _lsf_template % self
+        if self.runconf['sim_type']=='egret':
+            return _egret_lsf_template % self
+        else:
+            return _wombat_lsf_template % self
 
     def _format_walltime(self, hours):
         if hours < 10:
@@ -292,7 +295,7 @@ exit $status
 """
 
 
-_lsf_template="""#!/bin/bash
+_egret_lsf_template="""#!/bin/bash
 #BSUB -J %(job_name)s
 #BSUB -n 1
 #BSUB -oo ./%(job_name)s.oe
@@ -323,6 +326,63 @@ tmplog=$(basename $log_file)
 python -u $(which ngmixit)         \\
         --seed ${seed}             \\
         --psf-file=${psf_file}     \\
+        --fof-range $beg,$end      \\
+        ${config_file}             \\
+        ${output_file}             \\
+        ${meds_file} &> ${tmplog}
+
+status=$?
+
+echo "moving log file ${tmplog} -> ${log_file}" >> ${tmplog}
+
+# errors go to the jobs stderr
+mv -fv "${tmplog}" "${log_file}" 1>&2
+status2=$?
+
+if [[ $status2 != "0" ]]; then
+    # this error message will go to main error file
+    echo "error ${status2} moving log to: ${log_file}" 1>&2
+
+    status=$status2
+fi
+
+cd $HOME
+
+echo "removing temporary directory"
+rm -rfv ${tmpdir}
+
+exit $status
+"""
+
+_wombat_lsf_template="""#!/bin/bash
+#BSUB -J %(job_name)s
+#BSUB -n 1
+#BSUB -oo ./%(job_name)s.oe
+#BSUB -W %(walltime)s
+#BSUB -R "linux64 && rhel60 && scratch > 2"
+
+echo "working on host: $(hostname)"
+
+config_file=%(config_file)s
+meds_file=%(meds_file)s
+
+output_file=%(output_file)s
+log_file=%(log_file)s
+
+beg=%(beg)s
+end=%(end)s
+
+seed=%(seed)s
+
+# we need to make the scratch directory
+tmpdir="/scratch/esheldon/${LSB_JOBID}"
+mkdir -p $tmpdir
+cd $tmpdir
+
+tmplog=$(basename $log_file)
+
+python -u $(which ngmixit)         \\
+        --seed ${seed}             \\
         --fof-range $beg,$end      \\
         ${config_file}             \\
         ${output_file}             \\
