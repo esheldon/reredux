@@ -101,7 +101,7 @@ def get_meds_file(version, fnum, type='egret'):
         fname = '%s_meds%06d.fits.fz' % (version,fnum)
     else:
         d = get_wombat_data_dir(version)
-        fname = 'sim-%s-%03d.fits' % (version,fnum)
+        fname = 'sim-%s-%04d.fits' % (version,fnum)
 
     return os.path.join(d, fname)
 
