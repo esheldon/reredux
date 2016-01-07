@@ -3,7 +3,7 @@ from __future__ import print_function
 import os
 from pprint import pprint
 import numpy
-from numpy import arange, sqrt, array, zeros, where
+from numpy import arange, sqrt, array, zeros, ones, where
 
 import fitsio
 import ngmix
@@ -19,24 +19,14 @@ DEFAULT_TEST_SIZE=100000
 class Averager(dict):
     def __init__(self, run,
                  weights=None,
-                 do_test=False,
-                 ntest=100000,
-                 show=False,
-                 cuts=None,
-                 select_cosmos=False):
+                 show=False):
 
         """
         this show is for the detrend fits
         """
         self['run'] = run
         self['weights'] = weights
-        self['select_cosmos'] = select_cosmos
         self['show'] = show
-
-        self['cuts'] = cuts
-
-        self['do_test'] = do_test
-        self['ntest'] = ntest
 
         if self['weights'] is not None:
             print("Using weights")
@@ -52,8 +42,16 @@ class Averager(dict):
         self.shears = self['sconf']['shearmaker']['shears']
 
 
-    def do_averages(self, data):
-        means= self._get_averages(data)
+    def do_select_averages_and_fits(self, data, cuts):
+        sdata, sel = self.select(data, cuts=cuts)
+        self.do_averages_and_fits(sdata, sel=sel)
+
+    def do_averages_and_fits(self, data, sel=None):
+        self.do_averages(data, sel=sel)
+        self.do_fits()
+
+    def do_averages(self, data, sel=None):
+        means= self._get_averages(data, sel=sel)
         self._write_means(means)
 
     def do_fits(self):
@@ -255,7 +253,7 @@ class Averager(dict):
             '%s_mcal_R' % model,
             '%s_mcal_Rpsf' % model,
             'shear_index',
-            'cosmos_id',
+            #'cosmos_id',
             'flags'
         ]
 
@@ -292,28 +290,25 @@ class Averager(dict):
         wts = 1.0/(1.0 + (S2N_SOFT/s2n)**2 )
         return wts
 
-    def _get_averages(self, data, show_progress=False):
+    def _get_averages(self, data, sel=None, show_progress=False):
         if self['weights'] is not None:
-            return self._get_averages_weighted(data, show_progress=show_progress)
+            return self._get_averages_weighted(data, sel=sel, show_progress=show_progress)
         else:
-            return self._get_averages_noweight(data, show_progress=show_progress)
+            return self._get_averages_noweight(data, sel=sel, show_progress=show_progress)
 
-    def _get_selection_effect_crap(self, data, index):
+    def _get_selection_effect_full(self, data, index):
+
+        print("getting selection effects")
 
         shear=0.04
 
-        g, gpsf, R, Rpsf = self._get_arrays(data)
+        g, gpsf = self._get_arrays(data)
+        g1 = g[:,0]
+        g2 = g[:,1]
 
-        Rmean = R.mean(axis=0)
-        Rpsf_mean = Rpsf.mean(axis=0)
-
-        Rinv = numpy.linalg.inv(Rmean)
-
-        g1tot = g[:,0]
-        g2tot = g[:,1]
-
-        sg1,sg2 = ngmix.shape.shear_reduced(g1tot,
-                                            g2tot,
+        print("    getting sheared")
+        sg1,sg2 = ngmix.shape.shear_reduced(g1,
+                                            g2,
                                             shear,
                                             shear)
 
@@ -321,6 +316,10 @@ class Averager(dict):
 
         sheared_g[:,0] = sg1
         sheared_g[:,1] = sg2
+
+        print("    getting R")
+        Rmean, Rpsf_mean = self._get_R(data)
+        Rinv = numpy.linalg.inv(Rmean)
 
         #
         # no selection
@@ -336,9 +335,9 @@ class Averager(dict):
         #
         # with selection
         #
-        Rmean = R[index].mean(axis=0)
-        Rpsf_mean = Rpsf[index].mean(axis=0)
-
+        print("    getting selected R")
+        dindex = data[index]
+        Rmean, Rpsf_mean = self._get_R(dindex)
         Rinv = numpy.linalg.inv(Rmean)
 
         psf_corr  = gpsf[index].mean(axis=0)*Rpsf_mean
@@ -369,6 +368,14 @@ class Averager(dict):
 
         gvals = data[gfield]
 
+        """
+        g1tot=zeros(data.size*2)
+        g2tot=zeros(data.size*2)
+        g1tot[0:data.size] =  gvals[:,0]
+        g1tot[data.size:]  = -gvals[:,0]
+        g2tot[0:data.size] =  gvals[:,1]
+        g2tot[data.size:]  = -gvals[:,1]
+        """
         g1tot = gvals[:,0] - gvals[:,0].mean()
         g2tot = gvals[:,1] - gvals[:,1].mean()
 
@@ -406,6 +413,96 @@ class Averager(dict):
         print("sel mean:",sel.mean())
         print()
         return sel
+
+    def _get_selection_effect_alt(self, data, index):
+
+        print("making data[index]")
+        dindex=data[index]
+
+        # mean |shear| from sims; would want to adjust?
+        shear=0.045
+
+        model=self['model']
+        gfield = '%s_mcal_g' % model
+        Rfield = '%s_mcal_R' % model
+
+        R = data[Rfield]
+
+        print("getting Rnoise")
+        Rnoise, Rnoise_psf = self._get_Rnoise(data)
+        Rnoise_sel, Rnoise_psf_sel = self._get_Rnoise(dindex)
+
+        R11 = R[:,0,0].copy()
+        R22 = R[:,1,1].copy()
+        R11_sel = R[index,0,0].copy()
+        R22_sel = R[index,1,1].copy()
+
+        R11 -= Rnoise[0,0]
+        R22 -= Rnoise[1,1]
+        R11_sel -= Rnoise_sel[0,0]
+        R22_sel -= Rnoise_sel[1,1]
+
+        gvals = data[gfield]
+
+        g1 = gvals[:,0] - gvals[:,0].mean()
+        g2 = gvals[:,1] - gvals[:,1].mean()
+        #print("    not subtracting mean")
+        #g1 = gvals[:,0]
+        #g2 = gvals[:,1]
+
+        print("making sheared")
+        sg1,junk = ngmix.shape.shear_reduced(g1,
+                                             g2,
+                                             shear*R11,
+                                             0.0)
+        junk,sg2 = ngmix.shape.shear_reduced(g1,
+                                             g2,
+                                             0.0,
+                                             shear*R22)
+
+        sg1_sel,junk = ngmix.shape.shear_reduced(g1[index],
+                                                 g2[index],
+                                                 shear*R11_sel,
+                                                 0.0)
+        junk,sg2_sel = ngmix.shape.shear_reduced(g1[index],
+                                                 g2[index],
+                                                 0.0,
+                                                 shear*R22_sel)
+
+
+
+        R11mean=R11.mean()
+        R22mean=R22.mean()
+
+        R11mean_sel=R11_sel.mean()
+        R22mean_sel=R22_sel.mean()
+
+        smean1 = sg1.mean()/R11mean
+        smean2 = sg2.mean()/R22mean
+
+        smean1_sel = sg1_sel.mean()/R11mean_sel
+        smean2_sel = sg2_sel.mean()/R22mean_sel
+
+        serr1 = sg1.std()/sqrt(sg1.size)/R11mean
+        serr2 = sg2.std()/sqrt(sg2.size)/R22mean
+
+        serr1_sel = sg1_sel.std()/sqrt(index.size)/R11mean_sel
+        serr2_sel = sg2_sel.std()/sqrt(index.size)/R22mean_sel
+
+        print()
+        print("    mean meas: %g +/- %g  %g +/- %g" % (smean1,serr1,smean2,serr2))
+        print("sel mean meas: %g +/- %g  %g +/- %g" % (smean1_sel,serr1_sel,smean2_sel,serr2_sel))
+
+
+        sel=numpy.zeros(2)
+        sel[0]=smean1/smean1_sel
+        sel[1]=smean2/smean2_sel
+
+        print("sel:",sel)
+        print("sel mean:",sel.mean())
+        print()
+        return sel
+
 
 
     def _get_weighting_effect(self, data):
@@ -475,10 +572,10 @@ class Averager(dict):
 
         parameters
         ----------
-        use_cache: bool
+        cache: bool
             Read from the cache, creating it if needed.  Objects
             with flags are removed during cache creation
-        do_test: bool
+        test: bool
             Do a quick test, reading only a subset of data
         ntest: int
             Number to read for test
@@ -487,20 +584,19 @@ class Averager(dict):
         select_cosmos: bool
             Make cuts based on cosmos catalog
         """
-        use_cache=kw.get("use_cache",False)
-        if use_cache:
-            data = self._read_cached_data(**kw)
+        cache=kw.get("cache",False)
+        if cache:
+            data, sel = self._read_cached_data(**kw)
         else:
-            data = self._read_uncached_data(**kw)
+            data, sel = self._read_uncached_data(**kw)
 
-        return data
+        return data, sel
 
     def _determine_test(self, **kw):
-        do_test=kw.get('do_test',False)
-        if do_test:
-            ntest=kw.get('ntest',DEFAULT_TEST_SIZE)
+        test=kw.get('test',False)
+        ntest=kw.get('ntest',DEFAULT_TEST_SIZE)
 
-        return do_test, ntest
+        return test, ntest
 
     def _read_cached_data(self, **kw):
         """
@@ -512,16 +608,16 @@ class Averager(dict):
 
         print("reading cache:",cache_file)
 
-        do_test, ntest = self._determine_test(**kw)
-        if do_test:
+        test, ntest = self._determine_test(**kw)
+        if test:
             rows=arange(ntest)
         else:
             rows=None
 
         data=fitsio.read(cache_file, rows=rows)
 
-        data=self._process_read_data(data, **kw)
-        return data
+        data, sel=self.select(data, **kw)
+        return data, sel
 
 
     def _read_uncached_data(self, **kw):
@@ -532,8 +628,8 @@ class Averager(dict):
 
         print("reading columns:",columns)
 
-        do_test, ntest = self._determine_test(**kw)
-        if do_test:
+        test, ntest = self._determine_test(**kw)
+        if test:
             rows=arange(ntest)
         else:
             rows=None
@@ -546,22 +642,27 @@ class Averager(dict):
         print("        keeping %d/%d from flags" % (w.size,data.size))
         data=data[w]
 
-        data=self._process_read_data(data, **kw)
+        data, sel=self.select(data, **kw)
 
-        return data
+        return data, sel
 
-    def _process_read_data(self, data, **kw):
+    def select(self, data, **kw):
+        """
+        select and get the selected data and selection effect
+        """
 
-        self._sel = None
+        sel = None
 
-        w=self._select(data, **kw)
+        w=self._do_select(data, **kw)
         if w is not None:
-            self._sel = self._get_selection_effect(data, w)
+            #sel = self._get_selection_effect(data, w)
+            #sel = self._get_selection_effect_full(data, w)
+            sel = self._get_selection_effect_alt(data, w)
             data=data[w]
         elif self['weights'] is not None:
-            self._sel = self._get_weighting_effect(data)
+            sel = self._get_weighting_effect(data)
 
-        return data
+        return data, sel
 
     def _cache_in_chunks(self):
 
@@ -603,7 +704,7 @@ class Averager(dict):
                     print("        keeping %d/%d from flags" % (w.size,data.size))
                     data=data[w]
 
-                    #w=self._select(data)
+                    #w=self._do_select(data)
                     #if w is not None:
                     #    data=data[w]
 
@@ -615,7 +716,7 @@ class Averager(dict):
 
                     beg = beg + chunksize
 
-    def _select(self, data, **kw):
+    def _do_select(self, data, **kw):
 
         select_cosmos=kw.get('select_cosmos',False)
         cuts=kw.get('cuts',None)
@@ -642,7 +743,7 @@ class Averager(dict):
             logic = numpy.zeros(data.size, dtype=bool)
             logic[mdata] = True
         else:
-            logic = numpy.ones(data.size, dtype=bool)
+            logic = ones(data.size, dtype=bool)
 
 
         # optional additional cuts given on the command line
@@ -706,7 +807,7 @@ class AveragerRmean(Averager):
 
         return R, Rpsf
 
-    def _get_averages_noweight(self, data, show_progress=False):
+    def _get_averages_noweight(self, data, sel=None, show_progress=False):
 
         shears = self.shears
 
@@ -717,10 +818,8 @@ class AveragerRmean(Averager):
         Rmean, Rpsf_mean = self._get_R(data)
         Rinv = numpy.linalg.inv(Rmean)
 
-        if self._sel is not None:
-            sel=self._sel
-        else:
-            self=ones(2)
+        if sel is None:
+            sel=ones(2)
 
         means=get_mean_struct(nind)
 
@@ -747,7 +846,7 @@ class AveragerRmean(Averager):
 
         return means
 
-    def _get_averages_weighted(self, data, show_progress=False):
+    def _get_averages_weighted(self, data, sel=None, show_progress=False):
         from numpy import newaxis
 
         shears = self.shears
@@ -761,9 +860,7 @@ class AveragerRmean(Averager):
         Rmean, Rpsf_mean = self._get_R_weighted(data,weights)
         Rinv = numpy.linalg.inv(Rmean)
 
-        if self._sel is not None:
-            sel=self._sel
-        else:
+        if sel is None:
             sel=ones(2)
 
         means=get_mean_struct(nind)
@@ -969,7 +1066,7 @@ class AveragerDetrend(AveragerRmean):
             '%s_s2n_r' % model,
             '%s_log_T_r' % model,
             'shear_index',
-            'cosmos_id',
+            #'cosmos_id',
             'flags'
         ]
 
@@ -1024,7 +1121,7 @@ class AveragerSimn(Averager):
             '%s_mcal_Rnoise' % model,
             '%s_mcal_Rpsf_noise' % model,
             'shear_index',
-            'cosmos_id',
+            #'cosmos_id',
             'flags'
         ]
 

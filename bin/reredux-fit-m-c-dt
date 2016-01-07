@@ -43,14 +43,14 @@ def main():
     )
 
     if not args.fit_only:
-        data=av.read_data(
-            use_cache=args.cache,
-            do_test=args.test,
+        data, sel = av.read_data(
+            cache=args.cache,
+            test=args.test,
             ntest=args.ntest,
             select_cosmos=args.select_cosmos,
             cuts=args.cuts,
         )
-        av.do_averages(data)
+        av.do_averages(data, sel=sel)
 
     av.do_fits()
     av.doplot(args)
