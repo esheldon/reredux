@@ -112,13 +112,7 @@ class BatchMaker(dict):
     def _load_configs(self):
         self.runconf = files.read_config(self['run'])
 
-        if self.runconf['sim_type']=='egret':
-            self.reredux_conf = \
-                    files.read_egret_config(self.runconf['reredux_config'])
-        else:
-            self.reredux_conf = \
-                    files.read_wombat_config(self.runconf['reredux_config'])
-        #self.reredux_conf = files.read_config(self.runconf['reredux_config'])
+        self.reredux_conf = files.read_sim_config(self.runconf)
 
     def _set_global_seed(self):
         global_seed = self.runconf['global_seed']

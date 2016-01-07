@@ -32,15 +32,15 @@ class Averager(dict):
             print("Using weights")
 
         conf=files.read_config(run)
-        sconf=files.read_egret_config(conf['reredux_config'])
+        sconf = files.read_sim_config(conf)
 
         self.update(conf)
         self['sconf'] = sconf
 
         self['model'] = self['model_pars'].keys()[0]
-        #self.shears = self['sconf']['shear']['shears']
-        self.shears = self['sconf']['shearmaker']['shears']
 
+        if 'shearmaker' in self['sconf']:
+            self.shears = self['sconf']['shearmaker']['shears']
 
     def do_select_averages_and_fits(self, data, cuts):
         sdata, sel = self.select(data, cuts=cuts)
@@ -886,8 +886,6 @@ class AveragerRmean(Averager):
 
     def _get_averages_noweight(self, data, sel=None, show_progress=False):
 
-        shears = self.shears
-
         h,rev = eu.stat.histogram(data['shear_index'], rev=True)
         nind = h.size
 
@@ -906,7 +904,13 @@ class AveragerRmean(Averager):
 
             w=rev[ rev[i]:rev[i+1] ]
 
-            shear_true = shears[i]
+            if self.shear_true_in_struct:
+                shear_true = data['shear_true'][w].copy()
+                shear_true[:,0] *= -1
+                means['shear_true'][i] = shear_true[0,:]
+            else:
+                shear_true = self.shears[i]
+                means['shear_true'][i] = shear_true
 
             psf_corr  = Rpsf_mean*gpsf[w].mean(axis=0)
             gmean     = g[w].mean(axis=0) - psf_corr
@@ -919,14 +923,11 @@ class AveragerRmean(Averager):
 
             means['shear'][i] = shear
             means['shear_err'][i] = shear_err
-            means['shear_true'][i] = shear_true
 
         return means
 
     def _get_averages_weighted(self, data, sel=None, show_progress=False):
         from numpy import newaxis
-
-        shears = self.shears
 
         h,rev = eu.stat.histogram(data['shear_index'], rev=True)
         nind = h.size
@@ -954,7 +955,14 @@ class AveragerRmean(Averager):
             wna=wts[:,newaxis]
             wna2=wna**2
 
-            shear_true = shears[i]
+            if self.shear_true_in_struct:
+                shear_true = data['shear_true'][w].copy()
+                shear_true[:,0] *= -1
+                means['shear_true'][i] = shear_true[0,:]
+            else:
+                shear_true = self.shears[i]
+                means['shear_true'][i] = shear_true
+
 
             psf_corr = Rpsf_mean*(gpsf[w]*wna).sum(axis=0)/wsum
             gmean = (g[w]*wna).sum(axis=0)/wsum - psf_corr
@@ -969,7 +977,6 @@ class AveragerRmean(Averager):
 
             means['shear'][i] = shear
             means['shear_err'][i] = shear_err
-            means['shear_true'][i] = shear_true
 
         return means
 
@@ -1023,7 +1030,11 @@ class AveragerDetrend(AveragerRmean):
         noise0 = self['target_noise']
         print("noise0:",noise0)
 
-        target_noises = array( self['detrend_noises'] )
+        if 'detrend_noises' in self:
+            target_noises = array( self['detrend_noises'] )
+        else:
+            target_noises = noise0*array( self['detrend_factors'] )
+
         ndiff = target_noises - noise0
         xvals = 2*noise0*ndiff
 
@@ -1153,6 +1164,12 @@ class AveragerDetrend(AveragerRmean):
             Rpcol='%s_mcal_dt_Rnoise_psf' % model
             if Rpcol in colnames:
                 columns.append(Rpcol)
+
+            if 'shear_true' in colnames:
+                columns.append('shear_true')
+                self.shear_true_in_struct=True
+            else:
+                self.shear_true_in_struct=False
 
 
         if self['weights'] == 's2n':

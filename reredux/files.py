@@ -1,6 +1,12 @@
 from __future__ import print_function
 import os
 
+def read_sim_config(runconf):
+    if runconf['sim_type']=='egret':
+        return read_egret_config(runconf['reredux_config'])
+    else:
+        return read_wombat_config(runconf['reredux_config'])
+
 #
 # egretsims
 #
@@ -10,6 +16,7 @@ def get_egret_config_dir():
     location of config files for egret sims
     """
     return os.environ['EGRET_CONFIG_DIR']
+
 
 def get_egret_config_file(version):
     """
