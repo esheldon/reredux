@@ -16,6 +16,18 @@ SHAPENOISE=0.22
 S2N_SOFT=20.0
 DEFAULT_TEST_SIZE=100000
 
+class Namer(object):
+    """
+    create strings with a specified front prefix
+    """
+    def __init__(self, front=None):
+        self.front=front
+    def __call__(self, name):
+        if self.front is None or self.front=='':
+            return name
+        else:
+            return '%s_%s' % (self.front, name)
+
 class Averager(dict):
     def __init__(self, run,
                  weights=None,
@@ -37,7 +49,12 @@ class Averager(dict):
         self.update(conf)
         self['sconf'] = sconf
 
-        self['model'] = self['model_pars'].keys()[0]
+        if 'model_pars' in self:
+            model = self['model_pars'].keys()[0]
+        else:
+            model=None
+
+        self.namer=Namer(model)
 
         if 'shearmaker' in self['sconf']:
             self.shears = self['sconf']['shearmaker']['shears']
@@ -180,14 +197,14 @@ class Averager(dict):
 
         means=get_mean_struct(nind)
 
-        model=self['model_pars'].keys()[0]
+        n=self.namer
 
         wts = self._get_weights(data)
 
         if self['weights']=='s2n':
-            wfield = '%s_mcal_s2n_r' % model
+            wfield = n('mcal_s2n_r')
         elif self['weights']=='noise':
-            wfield = '%s_mcal_g_cov' % model
+            wfield = n('mcal_g_cov')
 
         Rmean = zeros( (2,2) )
         psf_corr = zeros( 2 )
@@ -230,13 +247,13 @@ class Averager(dict):
     def _get_arrays(self, data):
 
         print("getting arrays")
-        model=self['model']
+        n=self.namer
 
-        gfield = '%s_mcal_g' % model
-        gpsf_field = '%s_mcal_gpsf' % model
+        gfield = n('mcal_g')
+        gpsf_field = n('mcal_gpsf')
 
-        Rfield = '%s_mcal_R' % model
-        Rpsf_field = '%s_mcal_Rpsf' % model
+        Rfield = n('mcal_R')
+        Rpsf_field = n('mcal_Rpsf')
 
         g = data[gfield]
         gpsf = data[gpsf_field]
@@ -246,21 +263,21 @@ class Averager(dict):
         return g, gpsf, R, Rpsf
 
     def _get_columns(self):
-        model=self['model']
+        n=self.namer
         columns=[
-            '%s_mcal_g' % model,
-            '%s_mcal_gpsf' % model,
-            '%s_mcal_R' % model,
-            '%s_mcal_Rpsf' % model,
+            n('mcal_g'),
+            n('mcal_gpsf'),
+            n('mcal_R'),
+            n('mcal_Rpsf'),
             'shear_index',
             #'cosmos_id',
             'flags'
         ]
 
         if self['weights'] == 's2n':
-            columns += ['%s_mcal_s2n_r' % model]
+            columns += [n('mcal_s2n_r')]
         elif self['weights'] == 'noise':
-            columns += ['%s_mcal_g_cov' % model]
+            columns += [n('mcal_g_cov')]
 
 
         return columns
@@ -274,13 +291,13 @@ class Averager(dict):
         return weights
 
     def _get_weights(self, data):
-        model=self['model']
+        n=self.namer
         if self['weights'] == 's2n':
-            col = '%s_mcal_s2n_r' % model
+            col = n('mcal_s2n_r')
             s2n = data[col]
             return self._get_s2n_weights(s2n)
         elif self['weights']=='noise':
-            col = '%s_mcal_g_cov' % model
+            col = n('mcal_g_cov')
             cov = data[col]
             return self._get_noise_weights(cov)
         else:
@@ -363,8 +380,8 @@ class Averager(dict):
         # mean |shear| from sims; would want to adjust?
         shear=0.045
 
-        model=self['model']
-        gfield = '%s_mcal_g' % model
+        n=self.namer
+        gfield = n('mcal_g')
 
         gvals = data[gfield]
 
@@ -422,9 +439,9 @@ class Averager(dict):
         # mean |shear| from sims; would want to adjust?
         shear=0.045
 
-        model=self['model']
-        gfield = '%s_mcal_g' % model
-        Rfield = '%s_mcal_R' % model
+        n=self.namer
+        gfield = n('mcal_g')
+        Rfield = n('mcal_R')
 
         R = data[Rfield]
 
@@ -510,8 +527,8 @@ class Averager(dict):
 
         shear=0.045
 
-        model=self['model']
-        gfield = '%s_mcal_g' % model
+        n=self.namer
+        gfield = n('mcal_g')
 
         gvals = data[gfield]
 
@@ -570,9 +587,9 @@ class Averager(dict):
 
         shear=0.045
 
-        model=self['model']
-        gfield = '%s_mcal_g' % model
-        Rfield = '%s_mcal_R' % model
+        n=self.namer
+        gfield = n('mcal_g')
+        Rfield = n('mcal_R')
 
         R = data[Rfield]
 
@@ -860,10 +877,10 @@ class AveragerRmean(Averager):
     def _get_arrays(self, data):
 
         print("getting arrays")
-        model=self['model']
+        n=self.namer
 
-        gfield = '%s_mcal_g' % model
-        gpsf_field = '%s_mcal_gpsf' % model
+        gfield = n('mcal_g')
+        gpsf_field = n('mcal_gpsf')
 
         g = data[gfield]
         gpsf = data[gpsf_field]
@@ -874,10 +891,10 @@ class AveragerRmean(Averager):
     def _get_R(self, data):
 
         print("getting R")
-        model=self['model']
+        n=self.namer
 
-        Rfield = '%s_mcal_R' % model
-        Rpsf_field = '%s_mcal_Rpsf' % model
+        Rfield = n('mcal_R')
+        Rpsf_field = n('mcal_Rpsf')
 
         R = data[Rfield].mean(axis=0)
         Rpsf = data[Rpsf_field].mean(axis=0)
@@ -982,15 +999,20 @@ class AveragerRmean(Averager):
 
 
 class AveragerDetrend(AveragerRmean):
+    def __init__(self, *args, **kw):
+        super(AveragerDetrend,self).__init__(*args, **kw)
+        self['nodetrend']=kw.get('nodetrend',False)
+        if self['nodetrend']:
+            print("    NOT DETRENDING")
 
     def _get_Rnoise_means(self, data):
         """
         means across objects
         """
 
-        model=self['model']
-        dtR_field = '%s_mcal_dt_Rnoise' % model
-        dtR_psf_field = '%s_mcal_dt_Rnoise_psf' % model
+        n=self.namer
+        dtR_field = n('mcal_dt_Rnoise')
+        dtR_psf_field = n('mcal_dt_Rnoise_psf')
 
         Rdt = data[dtR_field].mean(axis=0)
         if dtR_psf_field in data.dtype.names:
@@ -1005,9 +1027,9 @@ class AveragerDetrend(AveragerRmean):
     def _get_Rnoise_means_weighted(self, data, weights):
         from numpy import newaxis
 
-        model=self['model']
-        dtR_field = '%s_mcal_dt_Rnoise' % model
-        dtR_psf_field = '%s_mcal_dt_Rnoise_psf' % model
+        n=self.namer
+        dtR_field = n('mcal_dt_Rnoise')
+        dtR_psf_field = n('mcal_dt_Rnoise_psf')
 
         wsum = weights.sum()
         wna2=weights[:,newaxis,newaxis]
@@ -1101,18 +1123,19 @@ class AveragerDetrend(AveragerRmean):
     def _get_R(self, data):
 
         print("getting R")
-        model=self['model']
 
-        Rfield = '%s_mcal_R' % model
-        Rpsf_field = '%s_mcal_Rpsf' % model
+        n=self.namer
+        Rfield = n('mcal_R')
+        Rpsf_field = n('mcal_Rpsf')
 
         R = data[Rfield].mean(axis=0)
         Rpsf = data[Rpsf_field].mean(axis=0)
 
-        Rnoise, Rnoise_psf = self._get_Rnoise(data)
+        if not self['nodetrend']:
+            Rnoise, Rnoise_psf = self._get_Rnoise(data)
 
-        R -= Rnoise
-        Rpsf -= Rnoise_psf
+            R -= Rnoise
+            Rpsf -= Rnoise_psf
 
         return R, Rpsf
 
@@ -1121,15 +1144,15 @@ class AveragerDetrend(AveragerRmean):
         from numpy import newaxis
 
         print("getting weighted R")
-        model=self['model']
+        n=self.namer
 
         wsum=weights.sum()
 
         wna1=weights[:,newaxis]
         wna2=weights[:,newaxis,newaxis]
 
-        Rfield = '%s_mcal_R' % model
-        Rpsf_field = '%s_mcal_Rpsf' % model
+        Rfield = n('mcal_R')
+        Rpsf_field = n('mcal_Rpsf')
 
         R = (data[Rfield]*wna2).sum(axis=0)/wsum
         Rpsf = (data[Rpsf_field]*wna1).sum(axis=0)/wsum
@@ -1144,15 +1167,15 @@ class AveragerDetrend(AveragerRmean):
 
     def _get_columns(self):
 
-        model=self['model']
+        n=self.namer
         columns=[
-            '%s_mcal_g' % model,
-            '%s_mcal_gpsf' % model,
-            '%s_mcal_R' % model,
-            '%s_mcal_Rpsf' % model,
-            '%s_mcal_dt_Rnoise' % model,
-            '%s_s2n_r' % model,
-            '%s_log_T_r' % model,
+            n('mcal_g'),
+            n('mcal_gpsf'),
+            n('mcal_R'),
+            n('mcal_Rpsf'),
+            n('mcal_dt_Rnoise'),
+            n('s2n_r'),
+            n('log_T_r'),
             'shear_index',
             #'cosmos_id',
             'flags'
@@ -1161,7 +1184,7 @@ class AveragerDetrend(AveragerRmean):
         fname=files.get_collated_file(self['run'])
         with fitsio.FITS(fname) as fobj:
             colnames=fobj[1].get_colnames()
-            Rpcol='%s_mcal_dt_Rnoise_psf' % model
+            Rpcol=n('mcal_dt_Rnoise_psf')
             if Rpcol in colnames:
                 columns.append(Rpcol)
 
@@ -1173,9 +1196,9 @@ class AveragerDetrend(AveragerRmean):
 
 
         if self['weights'] == 's2n':
-            columns += ['%s_mcal_s2n_r' % model]
+            columns += [n('mcal_s2n_r')]
         elif self['weights'] == 'noise':
-            columns += ['%s_mcal_g_cov' % model]
+            columns += [n('mcal_g_cov')]
 
         return columns
 
@@ -1184,16 +1207,16 @@ class AveragerSimn(Averager):
     def _get_arrays(self, data):
 
         print("getting arrays")
-        model=self['model']
+        n=self.namer
 
-        gfield = '%s_mcal_g' % model
-        gpsf_field = '%s_mcal_gpsf' % model
+        gfield = n('mcal_g')
+        gpsf_field = n('mcal_gpsf')
 
-        Rfield = '%s_mcal_R' % model
-        Rpsf_field = '%s_mcal_Rpsf' % model
+        Rfield = n('mcal_R')
+        Rpsf_field = n('mcal_Rpsf')
 
-        Rnoise_field = '%s_mcal_Rnoise' % model
-        Rpsf_noise_field = '%s_mcal_Rpsf_noise' % model
+        Rnoise_field = n('mcal_Rnoise')
+        Rpsf_noise_field = n('mcal_Rpsf_noise')
 
         g = data[gfield]
         gpsf = data[gpsf_field]
@@ -1206,23 +1229,23 @@ class AveragerSimn(Averager):
         return g, gpsf, R, Rpsf
 
     def _get_columns(self):
-        model=self['model']
+        n=self.namer
         columns=[
-            '%s_mcal_g' % model,
-            '%s_mcal_gpsf' % model,
-            '%s_mcal_R' % model,
-            '%s_mcal_Rpsf' % model,
-            '%s_mcal_Rnoise' % model,
-            '%s_mcal_Rpsf_noise' % model,
+            n('mcal_g'),
+            n('mcal_gpsf'),
+            n('mcal_R'),
+            n('mcal_Rpsf'),
+            n('mcal_Rnoise'),
+            n('mcal_Rpsf_noise'),
             'shear_index',
             #'cosmos_id',
             'flags'
         ]
 
         if self['weights'] == 's2n':
-            columns += ['%s_mcal_s2n_r' % model]
+            columns += [n('mcal_s2n_r')]
         elif self['weights']=='noise':
-            columns += ['%s_mcal_g_cov' % model]
+            columns += [n('mcal_g_cov')]
 
         return columns
 
@@ -1232,16 +1255,16 @@ class AveragerSimnRmean(AveragerSimn):
         print("subtracting Rnoise_mean")
 
         print("getting arrays")
-        model=self['model']
+        n=self.namer
 
-        gfield = '%s_mcal_g' % model
-        gpsf_field = '%s_mcal_gpsf' % model
+        gfield = n('mcal_g')
+        gpsf_field = n('mcal_gpsf')
 
-        Rfield = '%s_mcal_R' % model
-        Rpsf_field = '%s_mcal_Rpsf' % model
+        Rfield = n('mcal_R')
+        Rpsf_field = n('mcal_Rpsf')
 
-        Rnoise_field = '%s_mcal_Rnoise' % model
-        Rpsf_noise_field = '%s_mcal_Rpsf_noise' % model
+        Rnoise_field = n('mcal_Rnoise')
+        Rpsf_noise_field = n('mcal_Rpsf_noise')
 
         g = data[gfield]
         gpsf = data[gpsf_field]
@@ -1283,10 +1306,10 @@ class AveragerRef(Averager):
 
         g, gpsf, R, Rpsf = super(AveragerRef,self)._get_arrays(data)
 
-        model=self['model']
+        n=self.namer
 
-        Rfield = '%s_mcal_R' % model
-        Rpsf_field = '%s_mcal_Rpsf' % model
+        Rfield = n('mcal_R')
+        Rpsf_field = n('mcal_Rpsf')
         refR = self.refdata[Rfield].mean(axis=0)
         refRpsf = self.refdata[Rpsf_field].mean(axis=0)
 
@@ -1306,13 +1329,15 @@ class AveragerRefFix(AveragerRef):
 
     def _get_arrays(self, data):
 
+        n=self.namer
+
         # note this is calling the parent of the parent
         g, gpsf, R, Rpsf = super(AveragerRef,self)._get_arrays(data)
 
         print("    calculating R fix")
-        model=self['model']
-        Rfield = '%s_mcal_R' % model
-        Rpsf_field = '%s_mcal_Rpsf' % model
+
+        Rfield = n('mcal_R')
+        Rpsf_field = n('mcal_Rpsf')
         refR = self.refdata[Rfield]
         refRpsf = self.refdata[Rpsf_field]
 
@@ -1324,11 +1349,45 @@ class AveragerRefFix(AveragerRef):
         return g, gpsf, R, Rpsf
 
 
+def fit_m_c_boot(data, nboot=1000):
+    fits=fit_m_c(data)
+    fitsone=fit_m_c(data, onem=True)
+
+    bfits = numpy.zeros(nboot, dtype=fits.dtype)
+    bfitsone = numpy.zeros(nboot, dtype=fitsone.dtype)
+
+    print("bootstrapping m-c fits")
+    for i in xrange(nboot):
+        rint = numpy.random.randint(0, data.size, data.size)
+        tfits=fit_m_c(data[rint], doprint=False)
+
+        rint = numpy.random.randint(0, data.size, data.size)
+        tfitsone=fit_m_c(data[rint], doprint=False, onem=True)
+
+        bfits[i] = tfits
+        bfitsone[i] = tfitsone
+
+    fits['merr']=bfits['m'].std(axis=0)
+    fits['cerr']=bfits['m'].std(axis=0)
+    for i in [0,1]:
+        print_m_c(i+1,
+                  fits['m'][0,i],
+                  fits['merr'][0,i],
+                  fits['c'][0,i],
+                  fits['cerr'][0,i])
+
+
+    fitsone['merr'] = bfitsone['m'].std()
+    fitsone['c1err'] = bfitsone['c1'].std()
+    fitsone['c2err'] = bfitsone['c2'].std()
+
+    print('  m:  %.3e +/- %.3e' % (fitsone['m'][0],fitsone['merr'][0]))
+    print('  c1: %.3e +/- %.3e' % (fitsone['c1'][0],fitsone['c1err'][0]))
+    print('  c2: %.3e +/- %.3e' % (fitsone['c2'][0],fitsone['c2err'][0]))
+
+    return fits, fitsone
 
 def fit_m_c(data, doprint=True, onem=False):
-    import fitting
-    import mcmc
-    import esutil as eu
 
     strue = data['shear_true']
     sdiff = data['shear'] - data['shear_true']
@@ -1361,10 +1420,10 @@ def fit_m_c(data, doprint=True, onem=False):
         fits['c1err'] = perr[1]
         fits['c2err'] = perr[2]
 
-        fmt = '  m: %.3e +/- %.3e c1: %.3e +/- %.3e c2: %.3e +/- %.3e'
-        print(fmt % (pars[0],perr[0],
-                     pars[1],perr[1],
-                     pars[2],perr[2]))
+        if doprint:
+            print('  m:  %.3e +/- %.3e' % (pars[0],perr[0]))
+            print('  c1: %.3e +/- %.3e' % (pars[1],perr[1]))
+            print('  c2: %.3e +/- %.3e' % (pars[2],perr[2]))
         return fits
 
     fits=numpy.zeros(1, dtype=[('m','f8',2),

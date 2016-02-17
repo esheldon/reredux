@@ -4,6 +4,8 @@
 # turned off center finding
 reredux_config: "v14"
 
+sim_type: "egret"
+
 reredux_githash: "797c8e919f9e4bca19f38e8180f9ec6aca878f33"
 # simobs branch
 ngmix_githash: "643a647d3413e2bb8faa077c38b689cf5756fd72"
