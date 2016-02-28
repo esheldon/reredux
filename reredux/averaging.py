@@ -669,8 +669,6 @@ class Averager(dict):
         cache: bool
             Read from the cache, creating it if needed.  Objects
             with flags are removed during cache creation
-        test: bool
-            Do a quick test, reading only a subset of data
         ntest: int
             Number to read for test
         cuts: string
@@ -687,10 +685,8 @@ class Averager(dict):
         return data, sel
 
     def _determine_test(self, **kw):
-        test=kw.get('test',False)
         ntest=kw.get('ntest',DEFAULT_TEST_SIZE)
-
-        return test, ntest
+        return ntest
 
     def _read_cached_data(self, **kw):
         """
@@ -702,8 +698,8 @@ class Averager(dict):
 
         print("reading cache:",cache_file)
 
-        test, ntest = self._determine_test(**kw)
-        if test:
+        ntest = self._determine_test(**kw)
+        if ntest is not None:
             rows=arange(ntest)
         else:
             rows=None
@@ -722,8 +718,8 @@ class Averager(dict):
 
         print("reading columns:",columns)
 
-        test, ntest = self._determine_test(**kw)
-        if test:
+        ntest = self._determine_test(**kw)
+        if ntest is not None:
             rows=arange(ntest)
         else:
             rows=None
@@ -1086,6 +1082,7 @@ class AveragerDetrend(AveragerRmean):
                     r'$2 n \Delta n$',
                     r'$\Delta R^{PSF}_%d$' % (i+1),
                     show=show,
+                    label_error=False,
                 )
 
             for j in xrange(2):
@@ -1108,6 +1105,7 @@ class AveragerDetrend(AveragerRmean):
                     r'$2 n \Delta n$',
                     r'$\Delta R_{%d,%d}$' % (i+1,j+1),
                     show=show,
+                    label_error=False,
                 )
 
         Rnoise = A*noise0**2
@@ -1387,11 +1385,22 @@ def fit_m_c_boot(data, nboot=1000):
 
     return fits, fitsone
 
-def fit_m_c(data, doprint=True, onem=False):
+def fit_m_c(data, doprint=True, onem=False, max_shear=None):
 
     strue = data['shear_true']
     sdiff = data['shear'] - data['shear_true']
     serr  = data['shear_err']
+
+    if max_shear is not None:
+        stot_true = sqrt(strue[:,0]**2 + strue[:,1]**2)
+        w,=where(stot_true < max_shear)
+        if w.size == 0:
+            raise ValueError("no shears less than %g" % max_shear)
+        print("kept %d/%d with shear < %g" % (w.size,data.size,max_shear))
+        strue=strue[w,:]
+        sdiff=sdiff[w,:]
+        serr=serr[w,:]
+
 
     m = numpy.zeros(2)
     merr = numpy.zeros(2)
@@ -1455,7 +1464,7 @@ def fit_m_c(data, doprint=True, onem=False):
 
 
 #def plot_line_fit(args, extra, x, y, res, xlabel, ylabel):
-def plot_line_fit(run, extra, x, y, res, xlabel, ylabel, show=False):
+def plot_line_fit(run, extra, x, y, res, xlabel, ylabel, show=False, label_error=True):
     import biggles
     plt=biggles.FramedPlot()
 
@@ -1480,8 +1489,13 @@ def plot_line_fit(run, extra, x, y, res, xlabel, ylabel, show=False):
     pts = biggles.Points(x,y,type='filled circle')
     c = biggles.Curve(xfit, yfit, color='blue')
 
-    alab=r'$slope = %.3g \pm %.3g' % (res['slope'],res['slope_err'])
-    blab=r'$offset = %.3g \pm %.3g' % (res['offset'],res['offset_err'])
+    if label_error:
+        alab=r'$slope = %.3g \pm %.3g' % (res['slope'],res['slope_err'])
+        blab=r'$offset = %.3g \pm %.3g' % (res['offset'],res['offset_err'])
+    else:
+        alab=r'$slope = %.3g' % (res['slope'],)
+        blab=r'$offset = %.3g' % (res['offset'],)
+
     alabel=biggles.PlotLabel(0.9, 0.9, alab, halign='right')
     blabel=biggles.PlotLabel(0.9, 0.85, blab, halign='right')
 
