@@ -43,6 +43,7 @@ def main():
         args.run,
         weights=args.weights,
         show=args.show,
+        nodetrend=args.nodetrend,
     )
 
     if not args.fit_only:

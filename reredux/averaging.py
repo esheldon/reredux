@@ -29,16 +29,14 @@ class Namer(object):
             return '%s_%s' % (self.front, name)
 
 class Averager(dict):
-    def __init__(self, run,
-                 weights=None,
-                 show=False):
+    def __init__(self, run, **kw):
 
         """
         this show is for the detrend fits
         """
         self['run'] = run
-        self['weights'] = weights
-        self['show'] = show
+        self['weights'] = kw.get('weights',None)
+        self['show'] = kw.get('show',False)
 
         if self['weights'] is not None:
             print("Using weights")
@@ -914,14 +912,17 @@ class AveragerRmean(Averager):
             sel=ones(2)
 
         means=get_mean_struct(nind)
-
+        if 'shear_true' in data.dtype.names:
+            shear_true_in_struct=True
+        else:
+            shear_true_in_struct=False
         for i in xrange(nind):
             if show_progress:
                 print("shear index:",i)
 
             w=rev[ rev[i]:rev[i+1] ]
 
-            if self.shear_true_in_struct:
+            if shear_true_in_struct:
                 shear_true = data['shear_true'][w].copy()
                 shear_true[:,0] *= -1
                 means['shear_true'][i] = shear_true[0,:]
