@@ -30,8 +30,6 @@ parser.add_argument('--cache',action='store_true',
                     help=('cache the file subset locally; use the cache '
                           'if available'))
 
-parser.add_argument('--test',action='store_true',
-                    help='do a quick test with a subset of rows')
 parser.add_argument('--ntest',default=100000,type=int,
                     help='size of teset')
 
@@ -49,7 +47,6 @@ def main():
     if not args.fit_only:
         data, sel = av.read_data(
             cache=args.cache,
-            test=args.test,
             ntest=args.ntest,
             select_cosmos=args.select_cosmos,
             cuts=args.cuts,
