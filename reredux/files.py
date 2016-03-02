@@ -120,7 +120,7 @@ def get_psf_file(version, fnum):
     """
     the psf file
     """
-    d = get_data_dir(version)
+    d = get_egret_data_dir(version)
 
     fname = '%s_psf%06d.fits' % (version,fnum)
 
