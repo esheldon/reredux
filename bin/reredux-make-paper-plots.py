@@ -70,6 +70,7 @@ def make_s2n_plot(s2n):
 
 def make_r50_plot(r50):
 
+    print("r50:",r50.mean(), r50.std())
     nbin=50
     plt=plot_hist(r50,
                   nbin=nbin,
