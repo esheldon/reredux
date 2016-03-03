@@ -3,11 +3,11 @@
 reredux_config: "v14"
 sim_type: "egret"
 
-reredux_githash: ""
+reredux_githash: "bf3db97f0b0b2708676de7a175102e9254e1c1bf"
 # simobs branch
-ngmix_githash: ""
+ngmix_githash: "3e4818f454c348728b005b52d1a9250f3da4063e"
 # simobs branch
-ngmixer_githash: ""
+ngmixer_githash: "fb5d09ad51bb903a89c838022a8941aa0ad604f7"
 
 global_seed: 30136
 subn_nrand: 1
