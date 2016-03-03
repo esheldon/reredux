@@ -13,7 +13,7 @@ parser.add_argument('run', help='run to use in fit')
 parser.add_argument('--nodetrend', action='store_true',
                     help="do not apply detrend corrections")
 
-parser.add_argument('--cuts', help="cuts to apply")
+parser.add_argument('--select', help="select to apply")
 parser.add_argument('--select-cosmos', action='store_true',
                     help="select good cosmos galaxies")
 
@@ -48,7 +48,7 @@ def main():
             cache=args.cache,
             ntest=args.ntest,
             select_cosmos=args.select_cosmos,
-            cuts=args.cuts,
+            select=args.select,
         )
         av.do_averages(data, sel=sel)
 

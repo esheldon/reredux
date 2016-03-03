@@ -40,6 +40,8 @@ class Averager(dict):
         self['weights'] = weights
         self['show'] = show
 
+        self.shear_true_in_struct=False
+
         if self['weights'] is not None:
             print("Using weights")
 
@@ -59,8 +61,8 @@ class Averager(dict):
         if 'shearmaker' in self['sconf']:
             self.shears = self['sconf']['shearmaker']['shears']
 
-    def do_select_averages_and_fits(self, data, cuts):
-        sdata, sel = self.select(data, cuts=cuts)
+    def do_select_averages_and_fits(self, data, select):
+        sdata, sel = self.select(data, select=select)
         self.do_averages_and_fits(sdata, sel=sel)
 
     def do_averages_and_fits(self, data, sel=None):
@@ -151,7 +153,10 @@ class Averager(dict):
         if args.show:
             tab.show(width=1000, height=1000)
 
-    def _get_averages_noweight(self, data, show_progress=False):
+    def _get_averages_noweight(self, data, sel=None, show_progress=False):
+
+        if sel is None:
+            sel=ones(2)
 
         shears = self.shears
 
@@ -265,6 +270,8 @@ class Averager(dict):
     def _get_columns(self):
         n=self.namer
         columns=[
+            n('s2n_r'),
+            n('mcal_s2n_r'),
             n('mcal_g'),
             n('mcal_gpsf'),
             n('mcal_R'),
@@ -445,19 +452,26 @@ class Averager(dict):
 
         R = data[Rfield]
 
-        print("getting Rnoise")
-        Rnoise, Rnoise_psf = self._get_Rnoise(data)
-        Rnoise_sel, Rnoise_psf_sel = self._get_Rnoise(dindex)
+        if not hasattr(self,'_get_Rnoise'):
+            R11 = R[:,0,0]
+            R22 = R[:,1,1]
+            R11_sel = R[index,0,0]
+            R22_sel = R[index,1,1]
+        else:
+            R11 = R[:,0,0].copy()
+            R22 = R[:,1,1].copy()
+            R11_sel = R[index,0,0].copy()
+            R22_sel = R[index,1,1].copy()
 
-        R11 = R[:,0,0].copy()
-        R22 = R[:,1,1].copy()
-        R11_sel = R[index,0,0].copy()
-        R22_sel = R[index,1,1].copy()
+            print("getting Rnoise")
+            Rnoise, Rnoise_psf = self._get_Rnoise(data)
+            Rnoise_sel, Rnoise_psf_sel = self._get_Rnoise(dindex)
 
-        R11 -= Rnoise[0,0]
-        R22 -= Rnoise[1,1]
-        R11_sel -= Rnoise_sel[0,0]
-        R22_sel -= Rnoise_sel[1,1]
+
+            R11 -= Rnoise[0,0]
+            R22 -= Rnoise[1,1]
+            R11_sel -= Rnoise_sel[0,0]
+            R22_sel -= Rnoise_sel[1,1]
 
         gvals = data[gfield]
 
@@ -671,10 +685,10 @@ class Averager(dict):
             with flags are removed during cache creation
         ntest: int
             Number to read for test
-        cuts: string
-            Cuts to apply
+        select: string
+            select to apply
         select_cosmos: bool
-            Make cuts based on cosmos catalog
+            Make select based on cosmos catalog
         """
         cache=kw.get("cache",False)
         if cache:
@@ -726,11 +740,12 @@ class Averager(dict):
 
         data=files.read_collated(self['run'], columns=columns, rows=rows)
 
-        # always make the flag cuts
+        # always make the flag select
         print("    cutting flags")
         w,=where(data['flags']==0)
         print("        keeping %d/%d from flags" % (w.size,data.size))
-        data=data[w]
+        if w.size != data.size:
+            data=data[w]
 
         data, sel=self.select(data, **kw)
 
@@ -809,8 +824,8 @@ class Averager(dict):
     def _do_select(self, data, **kw):
 
         select_cosmos=kw.get('select_cosmos',False)
-        cuts=kw.get('cuts',None)
-        if not select_cosmos and cuts is None:
+        select=kw.get('select',None)
+        if not select_cosmos and select is None:
             return None
 
         if select_cosmos and not hasattr(self,'_good_cosmos_ids'):
@@ -818,7 +833,7 @@ class Averager(dict):
 
 
         if self['weights'] is not None:
-            raise RuntimeError("don't ask for weights and cuts")
+            raise RuntimeError("don't ask for weights and select")
 
         # some cut on cosmos goodness
         if select_cosmos:
@@ -836,12 +851,12 @@ class Averager(dict):
             logic = ones(data.size, dtype=bool)
 
 
-        # optional additional cuts given on the command line
-        if cuts is not None:
-            print("    cutting: '%s'" % cuts)
-            tlogic = eval(cuts)
+        # optional additional select given on the command line
+        if select is not None:
+            print("    cutting: '%s'" % select)
+            tlogic = eval(select)
             w,=where(tlogic)
-            print("        keeping %d/%d from cuts" % (w.size,data.size))
+            print("        keeping %d/%d from select" % (w.size,data.size))
 
             logic = logic & tlogic
 
