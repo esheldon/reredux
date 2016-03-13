@@ -1,0 +1,114 @@
+#!/usr/bin/env python
+"""
+compare R with fixnoise and without
+"""
+from __future__ import print_function
+import biggles
+from biggles import Table, make_histc, FramedPlot, PlotKey
+from numpy import arange, where
+import reredux
+
+NROWS=10000000
+#NROWS=10000
+
+def read_data():
+    columns=['gauss_mcal_R', 'gauss_mcal_Rpsf']
+    t1=reredux.files.read_collated('mcal-v14s01',
+                                   rows=arange(NROWS),
+                                   columns=columns)
+    t2=reredux.files.read_collated('mcal-v14s02',
+                                   rows=arange(NROWS),
+                                   columns=columns)
+
+    return t1,t2
+
+def plot_R(t1,t2,ii, type='R', add_key=False):
+    #minval=-1.5
+    #maxval=2.0
+    minval=-1.0
+    maxval= 1.75
+    nbin=300
+
+    name='gauss_mcal_%s' % type
+    if type=='R':
+        data1 = t1[name][:,ii,ii]
+        data2 = t2[name][:,ii,ii]
+    else:
+        data1 = t1[name][:,ii]
+        data2 = t2[name][:,ii]
+
+    c1,c1edge,c1hist= make_histc(data1,
+                                 min=minval,
+                                 max=maxval,
+                                 nbin=nbin,
+                                 norm=1,
+                                 smooth=True,
+                                 color='blue',
+                                 type='solid',
+                                 label='no fixnoise',
+                                 get_hdata=True)
+    c2,c2edge,c2hist= make_histc(data2,
+                                 min=minval,
+                                 max=maxval,
+                                 nbin=nbin,
+                                 norm=1,
+                                 smooth=True,
+                                 color='red',
+                                 type='dashed',
+                                 label='fixnoise',
+                                 get_hdata=True)
+
+    if type=='R':
+        xlabel = r'$R_{%d,%d}$' % (ii+1,ii+1)
+    else:
+        xlabel = r'$R^p_{%d}$' % (ii+1,)
+
+    plt=FramedPlot(xlabel=xlabel, aspect_ratio=1)
+    plt.y1.draw_ticklabels=False
+    plt.add(c1,c2)
+
+    plt.yrange=[0,1.1*max(c1hist.max(),c2hist.max())]
+
+    if add_key:
+        key = PlotKey(0.1, 0.9, [c1,c2], halign='left')
+        plt.add(key)
+
+    return plt
+
+def print_skew(x1, x2):
+    import scipy.stats
+    w1,=where( (x1 > -1.5) & (x1 < 2.0) )
+    w2,=where( (x2 > -1.5) & (x2 < 2.0) )
+
+    s1 = scipy.stats.skew(x1[w1],bias=False)
+    s2 = scipy.stats.skew(x2[w2],bias=False)
+
+    print("skew1:",s1)
+    print("skew2:",s2)
+
+def main():
+    biggles.configure('default','fontsize_min',2)
+    biggles.configure('PlotKey','key_vsep',3)
+
+    t1,t2=read_data()
+
+    print_skew(t1['gauss_mcal_R'][:,0,0],t2['gauss_mcal_R'][:,0,0])
+
+    plt_R11 = plot_R(t1, t2, 0, type='R', add_key=True)
+    plt_R22 = plot_R(t1, t2, 1, type='R')
+
+    plt_Rpsf_1 = plot_R(t1, t2, 0, type='Rpsf')
+    plt_Rpsf_2 = plot_R(t1, t2, 1, type='Rpsf')
+
+
+    tab=Table(2,2)
+
+    tab[0,0] = plt_R11
+    tab[0,1] = plt_R22
+    tab[1,0] = plt_Rpsf_1
+    tab[1,1] = plt_Rpsf_2
+
+    tab.write_img(800,800,'/u/ki/esheldon/public_html/tmp/tmp.png')
+    tab.write_eps('/u/ki/esheldon/public_html/tmp/tmp.eps')
+
+main()
