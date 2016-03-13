@@ -66,6 +66,7 @@ def make_s2n_plot(s2n):
                   xlabel=r'$log_{10}(S/N)$',
                   aspect_ratio=1,
                   norm=1)
+    plt.y1.draw_ticklabels=False
     return plt
 
 def make_r50_plot(r50):
@@ -81,7 +82,9 @@ def make_r50_plot(r50):
                   aspect_ratio=1,
                   xlabel=r'$r_{50} [pixels]$')
 
-    p=ngmix.priors.LogNormal(2.0, 0.5)
+
+    # the r50 from the parametric sims
+    p=ngmix.priors.LogNormal(1.54, 1.0)
     r=p.sample(r50.size*10)
 
     plot_hist(r,
@@ -92,7 +95,9 @@ def make_r50_plot(r50):
               max=6,
               plt=plt,
               color='red',
-              type='dotdashed')
+              smooth=True,
+              type='dashed')
+    plt.y1.draw_ticklabels=False
 
 
     return plt
@@ -106,8 +111,13 @@ def main():
     tab[0,0] = make_s2n_plot(s2n)
     tab[0,1] = make_r50_plot(r50)
 
-    tab.write_img(800,800,'/u/ki/esheldon/public_html/tmp/tmp.png')
-    tab.write_eps('/u/ki/esheldon/public_html/tmp/tmp.eps')
+    epsfile='/u/ki/esheldon/public_html/tmp/tmp.eps'
+    print(epsfile)
+    tab.write_eps(epsfile)
+
+    pngfile=epsfile.replace('.eps','.png')
+    print(pngfile)
+    tab.write_img(800,800,pngfile)
 
 
 main()

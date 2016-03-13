@@ -12,6 +12,7 @@ scripts=[
     'reredux-fit-m-c',
     'reredux-fit-m-c-ref',
     'reredux-fit-m-c-nofix',
+    'reredux-fit-m-c-nocorr',
     'reredux-fit-m-c-dt',
 ]
 

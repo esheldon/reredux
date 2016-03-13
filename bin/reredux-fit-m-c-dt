@@ -30,8 +30,8 @@ parser.add_argument('--cache',action='store_true',
                     help=('cache the file subset locally; use the cache '
                           'if available'))
 
-parser.add_argument('--ntest',default=100000,type=int,
-                    help='size of teset')
+parser.add_argument('--ntest',default=None,type=int,
+                    help='size of test')
 
 
 def main():
