@@ -60,6 +60,8 @@ class Averager(dict):
 
         if 'shearmaker' in self['sconf']:
             self.shears = self['sconf']['shearmaker']['shears']
+        else:
+            self.shears=None
 
     def do_select_averages_and_fits(self, data, select):
         sdata, sel = self.select(data, select=select)
@@ -173,7 +175,10 @@ class Averager(dict):
 
             w=rev[ rev[i]:rev[i+1] ]
 
-            shear_true = shears[i]
+            if self.shear_true_in_struct:
+                shear_true = data['shear_true'][w].mean(axis=0)
+            else:
+                shear_true = shears[i]
 
             Rmean = R[w].mean(axis=0)
             Rinv = numpy.linalg.inv(Rmean)
@@ -225,7 +230,11 @@ class Averager(dict):
             wts2=wts[w]**2
             wsum=wts[w].sum()
 
-            shear_true = shears[i]
+            if self.shear_true_in_struct:
+                shear_true = data['shear_true'][w].mean(axis=0)
+            else:
+                shear_true = shears[i]
+
 
             for ii in xrange(2):
                 gmean[ii] = (g[w,ii]*wts[w]).sum()/wsum
@@ -267,6 +276,16 @@ class Averager(dict):
 
         return g, gpsf, R, Rpsf
 
+    def _set_shear_true_in_struct(self):
+        fname=files.get_collated_file(self['run'])
+        with fitsio.FITS(fname) as fobj:
+            colnames=fobj[1].get_colnames()
+            if 'shear_true' in colnames:
+                self.shear_true_in_struct=True
+            else:
+                self.shear_true_in_struct=False
+
+
     def _get_columns(self):
         n=self.namer
         columns=[
@@ -277,7 +296,6 @@ class Averager(dict):
             n('mcal_R'),
             n('mcal_Rpsf'),
             'shear_index',
-            #'cosmos_id',
             'flags'
         ]
 
@@ -286,6 +304,10 @@ class Averager(dict):
         elif self['weights'] == 'noise':
             columns += [n('mcal_g_cov')]
 
+        self._set_shear_true_in_struct()
+
+        if self.shear_true_in_struct:
+            columns.append('shear_true')
 
         return columns
 
@@ -941,12 +963,9 @@ class AveragerRmean(Averager):
             w=rev[ rev[i]:rev[i+1] ]
 
             if self.shear_true_in_struct:
-                shear_true = data['shear_true'][w].copy()
-                shear_true[:,0] *= -1
-                means['shear_true'][i] = shear_true[0,:]
+                shear_true = data['shear_true'][w].mean(axis=0)
             else:
                 shear_true = self.shears[i]
-                means['shear_true'][i] = shear_true
 
             psf_corr  = Rpsf_mean*gpsf[w].mean(axis=0)
             gmean     = g[w].mean(axis=0) - psf_corr
@@ -959,6 +978,7 @@ class AveragerRmean(Averager):
 
             means['shear'][i] = shear
             means['shear_err'][i] = shear_err
+            means['shear_true'][i] = shear_true
 
         return means
 
@@ -992,13 +1012,11 @@ class AveragerRmean(Averager):
             wna2=wna**2
 
             if self.shear_true_in_struct:
-                shear_true = data['shear_true'][w].copy()
-                shear_true[:,0] *= -1
-                means['shear_true'][i] = shear_true[0,:]
+                shear_true = (data['shear_true'][w]*wna).mean(axis=0)/wsum
             else:
                 shear_true = self.shears[i]
-                means['shear_true'][i] = shear_true
 
+            means['shear_true'][i] = shear_true
 
             psf_corr = Rpsf_mean*(gpsf[w]*wna).sum(axis=0)/wsum
             gmean = (g[w]*wna).sum(axis=0)/wsum - psf_corr
@@ -1203,31 +1221,22 @@ class AveragerDetrend(AveragerRmean):
             n('mcal_R'),
             n('mcal_Rpsf'),
             n('mcal_dt_Rnoise'),
+            n('mcal_dt_Rnoise_psf'),
             n('s2n_r'),
             n('log_T_r'),
             'shear_index',
-            #'cosmos_id',
             'flags'
         ]
-
-        fname=files.get_collated_file(self['run'])
-        with fitsio.FITS(fname) as fobj:
-            colnames=fobj[1].get_colnames()
-            Rpcol=n('mcal_dt_Rnoise_psf')
-            if Rpcol in colnames:
-                columns.append(Rpcol)
-
-            if 'shear_true' in colnames:
-                columns.append('shear_true')
-                self.shear_true_in_struct=True
-            else:
-                self.shear_true_in_struct=False
-
 
         if self['weights'] == 's2n':
             columns += [n('mcal_s2n_r')]
         elif self['weights'] == 'noise':
             columns += [n('mcal_g_cov')]
+
+        self._set_shear_true_in_struct()
+
+        if self.shear_true_in_struct:
+            columns.append('shear_true')
 
         return columns
 

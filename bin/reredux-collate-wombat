@@ -45,6 +45,11 @@ def main():
     version=runconf['reredux_config']
     reredux_conf = files.read_wombat_config(version)
 
+    if 'shear' in reredux_conf:
+        shear=reredux_conf['shear']
+    else:
+        shear=None
+
     collated_file=get_collated_file(args.run)
     eu.ostools.makedirs_fromfile(collated_file)
 
@@ -71,8 +76,9 @@ def main():
             if mdata is None:
                 continue
 
-            truth_file=files.get_truth_file(version, fnum)
-            truth_data=fitsio.read(truth_file)
+            if shear is None:
+                truth_file=files.get_truth_file(version, fnum)
+                truth_data=fitsio.read(truth_file)
 
             for beg,end in zip(beglist, endlist):
                 fname=files.get_output_file(args.run, fnum, beg, end)
@@ -89,9 +95,15 @@ def main():
                 data=fitsio.read(fname)
                 addf=[('shear_index','i8'),('shear_true','f8',2)]
                 data = eu.numpy_util.add_fields(data, addf)
-                data['shear_index'] = fnum
-                data['shear_true'][:,0] = truth_data['g1'][beg:end+1]
-                data['shear_true'][:,1] = truth_data['g2'][beg:end+1]
+
+                if shear is not None:
+                    data['shear_index'] = 0
+                    data['shear_true'][:,0] = shear[0]
+                    data['shear_true'][:,1] = shear[1]
+                else:
+                    data['shear_index'] = fnum
+                    data['shear_true'][:,0] = truth_data['g1'][beg:end+1]
+                    data['shear_true'][:,1] = truth_data['g2'][beg:end+1]
 
                 if first:
                     first=False
