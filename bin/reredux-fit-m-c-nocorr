@@ -10,9 +10,6 @@ parser = ArgumentParser()
 
 parser.add_argument('run', help='run to use in fit')
 
-parser.add_argument('--nodetrend', action='store_true',
-                    help="do not apply detrend corrections")
-
 parser.add_argument('--select', help="select to apply")
 parser.add_argument('--select-cosmos', action='store_true',
                     help="select good cosmos galaxies")
@@ -36,12 +33,11 @@ parser.add_argument('--ntest',default=None,type=int,
 
 def main():
     args = parser.parse_args()
-    cls = reredux.averaging.AveragerDetrend
+    cls = reredux.averaging.AveragerNoCorr
     av=cls(
         args.run,
         weights=args.weights,
         show=args.show,
-        nodetrend=args.nodetrend,
     )
 
     if not args.fit_only:
