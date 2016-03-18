@@ -1,0 +1,5 @@
+Nfiles: 200
+Ngals: 10000
+
+# single g1,g2
+shear: [0.017, 0.023]
