@@ -4,10 +4,10 @@ reredux_config: "v003"
 sim_type: "wombat"
 psfs_in_file: True
 
-reredux_githash: ""
-# simobs branch
-ngmix_githash: ""
-# simobs branch
+reredux_githash: "474a9e0f769a1e9ea28887e36c29ac8df6592593"
+# metacalwcs branch
+ngmix_githash: "ce45edd4cff3382953bd9f75b25ce874ae86ec87"
+# tmpfixwcs branch
 ngmixer_githash: "757e0ff5061ef75dbbcca21aad9414418c18c2a2"
 
 global_seed: 1118
