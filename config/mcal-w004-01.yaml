@@ -2,13 +2,13 @@ reredux_config: "v004"
 sim_type: "wombat"
 psfs_in_file: True
 
-reredux_githash: ""
+reredux_githash: "3d732737db66a4e2002838996031764159d8c4b5"
 # metacalwcs branch
-ngmix_githash: ""
+ngmix_githash: "28b9cbf6c383b004994817c23355913d446313fd"
 # tmpfixwcs branch
-ngmixer_githash: ""
+ngmixer_githash: "516f5c18ed6e34c85f037a5ba28841e1c433ca49"
 
-global_seed: 31666
+global_seed: 7246
 
 fitter_type: "metacal-ngmix-boot"
 imageio_type: "meds-simp-sim"
