@@ -61,16 +61,9 @@ class Averager(dict):
         else:
             self.shears=None
 
-    def do_select_averages_and_fits(self, data, select):
-        sdata, sel = self.select(data, select=select)
-        self.do_averages_and_fits(sdata, sel=sel)
 
-    def do_averages_and_fits(self, data, sel=None):
-        self.do_averages(data, sel=sel)
-        self.do_fits()
-
-    def do_averages(self, data, sel=None):
-        means= self._get_averages(data, sel=sel)
+    def do_averages(self, data):
+        means= self._get_averages(data)
         self._write_means(means)
 
     def do_fits(self):
@@ -340,360 +333,6 @@ class Averager(dict):
         else:
             return self._get_averages_noweight(data, sel=sel, show_progress=show_progress)
 
-    def _get_selection_effect_full(self, data, index):
-
-        print("getting selection effects")
-
-        shear=0.04
-
-        g, gpsf = self._get_arrays(data)
-        g1 = g[:,0]
-        g2 = g[:,1]
-
-        print("    getting sheared")
-        sg1,sg2 = ngmix.shape.shear_reduced(g1,
-                                            g2,
-                                            shear,
-                                            shear)
-
-        sheared_g = numpy.zeros( (data.size, 2) )
-
-        sheared_g[:,0] = sg1
-        sheared_g[:,1] = sg2
-
-        print("    getting R")
-        Rmean, Rpsf_mean = self._get_R(data)
-        Rinv = numpy.linalg.inv(Rmean)
-
-        #
-        # no selection
-        #
-
-        psf_corr  = gpsf.mean(axis=0)*Rpsf_mean
-
-        smean     = sheared_g.mean(axis=0)
-        shear     = numpy.dot(Rinv, smean-psf_corr)
-        shear_err = sheared_g.std(axis=0)/numpy.sqrt(data.size)
-        shear_err = numpy.dot(Rinv, shear_err)
-
-        #
-        # with selection
-        #
-        print("    getting selected R")
-        dindex = data[index]
-        Rmean, Rpsf_mean = self._get_R(dindex)
-        Rinv = numpy.linalg.inv(Rmean)
-
-        psf_corr  = gpsf[index].mean(axis=0)*Rpsf_mean
-
-        smean       = sheared_g[index].mean(axis=0)
-        s_shear     = numpy.dot(Rinv, smean-psf_corr)
-        s_shear_err = sheared_g[index].std(axis=0)/numpy.sqrt(index.size)
-        s_shear_err = numpy.dot(Rinv, s_shear_err)
-
-        print()
-        print("    mean: %g +/- %g  %g +/- %g" % (shear[0],shear_err[0],shear[1],shear_err[1]))
-        print("sel mean: %g +/- %g  %g +/- %g" % (s_shear[0],s_shear_err[0],s_shear[1],s_shear_err[1]))
-
-        sel = shear/s_shear
-
-        print("sel:",sel)
-        print()
-        return sel
-
-
-    def _get_selection_effect(self, data, index):
-
-        # mean |shear| from sims; would want to adjust?
-        shear=0.045
-
-        n=self.namer
-        gfield = n('mcal_g')
-
-        gvals = data[gfield]
-
-        """
-        g1tot=zeros(data.size*2)
-        g2tot=zeros(data.size*2)
-        g1tot[0:data.size] =  gvals[:,0]
-        g1tot[data.size:]  = -gvals[:,0]
-        g2tot[0:data.size] =  gvals[:,1]
-        g2tot[data.size:]  = -gvals[:,1]
-        """
-        g1tot = gvals[:,0] - gvals[:,0].mean()
-        g2tot = gvals[:,1] - gvals[:,1].mean()
-
-        sg1,junk = ngmix.shape.shear_reduced(g1tot,
-                                             g2tot,
-                                             shear,
-                                             0.0)
-        junk,sg2 = ngmix.shape.shear_reduced(g1tot,
-                                             g2tot,
-                                             0.0,
-                                             shear)
-
-        smean1 = sg1.mean()
-        smean2 = sg2.mean()
-
-        smean1_sel = sg1[index].mean()
-        smean2_sel = sg2[index].mean()
-
-        serr1 = sg1.std()/sqrt(sg1.size)
-        serr2 = sg2.std()/sqrt(sg2.size)
-
-        serr1_sel = sg1[index].std()/sqrt(index.size)
-        serr2_sel = sg2[index].std()/sqrt(index.size)
-
-
-        print()
-        print("    mean meas: %g +/- %g  %g +/- %g" % (smean1,serr1,smean2,serr2))
-        print("sel mean meas: %g +/- %g  %g +/- %g" % (smean1_sel,serr1_sel,smean2_sel,serr2_sel))
-
-        sel=numpy.zeros(2)
-        sel[0]=smean1/smean1_sel
-        sel[1]=smean2/smean2_sel
-
-        print("sel:",sel)
-        print("sel mean:",sel.mean())
-        print()
-        return sel
-
-    def _get_selection_effect_alt(self, data, index):
-
-        print("making data[index]")
-        dindex=data[index]
-
-        # mean |shear| from sims; would want to adjust?
-        shear=0.045
-
-        n=self.namer
-        gfield = n('mcal_g')
-        Rfield = n('mcal_R')
-
-        R = data[Rfield]
-
-        if not hasattr(self,'_get_Rnoise'):
-            R11 = R[:,0,0]
-            R22 = R[:,1,1]
-            R11_sel = R[index,0,0]
-            R22_sel = R[index,1,1]
-        else:
-            R11 = R[:,0,0].copy()
-            R22 = R[:,1,1].copy()
-            R11_sel = R[index,0,0].copy()
-            R22_sel = R[index,1,1].copy()
-
-            print("getting Rnoise")
-            Rnoise, Rnoise_psf = self._get_Rnoise(data)
-            Rnoise_sel, Rnoise_psf_sel = self._get_Rnoise(dindex)
-
-
-            R11 -= Rnoise[0,0]
-            R22 -= Rnoise[1,1]
-            R11_sel -= Rnoise_sel[0,0]
-            R22_sel -= Rnoise_sel[1,1]
-
-        gvals = data[gfield]
-
-        g1 = gvals[:,0] - gvals[:,0].mean()
-        g2 = gvals[:,1] - gvals[:,1].mean()
-        #print("    not subtracting mean")
-        #g1 = gvals[:,0]
-        #g2 = gvals[:,1]
-
-        print("making sheared")
-        sg1,junk = ngmix.shape.shear_reduced(g1,
-                                             g2,
-                                             shear*R11,
-                                             0.0)
-        junk,sg2 = ngmix.shape.shear_reduced(g1,
-                                             g2,
-                                             0.0,
-                                             shear*R22)
-
-        sg1_sel,junk = ngmix.shape.shear_reduced(g1[index],
-                                                 g2[index],
-                                                 shear*R11_sel,
-                                                 0.0)
-        junk,sg2_sel = ngmix.shape.shear_reduced(g1[index],
-                                                 g2[index],
-                                                 0.0,
-                                                 shear*R22_sel)
-
-
-
-        R11mean=R11.mean()
-        R22mean=R22.mean()
-
-        R11mean_sel=R11_sel.mean()
-        R22mean_sel=R22_sel.mean()
-
-        smean1 = sg1.mean()/R11mean
-        smean2 = sg2.mean()/R22mean
-
-        smean1_sel = sg1_sel.mean()/R11mean_sel
-        smean2_sel = sg2_sel.mean()/R22mean_sel
-
-        serr1 = sg1.std()/sqrt(sg1.size)/R11mean
-        serr2 = sg2.std()/sqrt(sg2.size)/R22mean
-
-        serr1_sel = sg1_sel.std()/sqrt(index.size)/R11mean_sel
-        serr2_sel = sg2_sel.std()/sqrt(index.size)/R22mean_sel
-
-        print()
-        print("    mean meas: %g +/- %g  %g +/- %g" % (smean1,serr1,smean2,serr2))
-        print("sel mean meas: %g +/- %g  %g +/- %g" % (smean1_sel,serr1_sel,smean2_sel,serr2_sel))
-
-
-        sel=numpy.zeros(2)
-        sel[0]=smean1/smean1_sel
-        sel[1]=smean2/smean2_sel
-
-        print("sel:",sel)
-        print("sel mean:",sel.mean())
-        print()
-        #return sel.mean()
-        return sel
-
-
-
-    def _get_weighting_effect(self, data):
-
-        shear=0.045
-
-        n=self.namer
-        gfield = n('mcal_g')
-
-        gvals = data[gfield]
-
-        g1tot = gvals[:,0]# - gvals[:,0].mean()
-        g2tot = gvals[:,1]# - gvals[:,1].mean()
-
-        sg1,junk = ngmix.shape.shear_reduced(g1tot,
-                                             g2tot,
-                                             shear,
-                                             0.0)
-        junk,sg2 = ngmix.shape.shear_reduced(g1tot,
-                                             g2tot,
-                                             0.0,
-                                             shear)
-        '''
-        sg1,sg2 = ngmix.shape.shear_reduced(g1tot,
-                                            g2tot,
-                                            shear,
-                                            shear)
-        '''
-
-
-        weights = self._get_weights(data)
-
-        s1res=eu.stat.get_stats(sg1)
-        s2res=eu.stat.get_stats(sg2)
-
-        ws1res=eu.stat.get_stats(sg1, weights=weights)
-        ws2res=eu.stat.get_stats(sg2, weights=weights)
-
-        mean1 = s1res['mean']
-        mean2 = s2res['mean']
-
-        wmean1 = ws1res['mean']
-        wmean2 = ws2res['mean']
-
-        err1 = s1res['err']
-        err2 = s2res['err']
-
-        werr1 = ws1res['err']
-        werr2 = ws2res['err']
-
-        print()
-        print("  mean meas: %g +/- %g  %g +/- %g" % (mean1,err1,mean2,err2))
-        print("w mean meas: %g +/- %g  %g +/- %g" % (wmean1,werr1,wmean2,werr2))
-
-        sel=numpy.zeros(2)
-        sel[0]=mean1/wmean1
-        sel[1]=mean2/wmean2
-
-        print("weight sel:",sel)
-        print()
-        return sel
-
-    def _get_weighting_effect_alt(self, data):
-
-        shear=0.045
-
-        n=self.namer
-        gfield = n('mcal_g')
-        Rfield = n('mcal_R')
-
-        R = data[Rfield]
-
-        print("getting Rnoise")
-        Rnoise, Rnoise_psf = self._get_Rnoise(data)
-
-        R11 = R[:,0,0].copy()
-        R22 = R[:,1,1].copy()
-
-        R11 -= Rnoise[0,0]
-        R22 -= Rnoise[1,1]
-
-        gvals = data[gfield]
-
-        g1 = gvals[:,0] - gvals[:,0].mean()
-        g2 = gvals[:,1] - gvals[:,1].mean()
-
-        print("making sheared")
-        sg1,junk = ngmix.shape.shear_reduced(g1,
-                                             g2,
-                                             shear*R11,
-                                             0.0)
-        junk,sg2 = ngmix.shape.shear_reduced(g1,
-                                             g2,
-                                             0.0,
-                                             shear*R22)
-
-        sg1_sel,junk = ngmix.shape.shear_reduced(g1[index],
-                                                 g2[index],
-                                                 shear*R11_sel,
-                                                 0.0)
-        junk,sg2_sel = ngmix.shape.shear_reduced(g1[index],
-                                                 g2[index],
-                                                 0.0,
-                                                 shear*R22_sel)
-
-
-        weights = self._get_weights(data)
-
-        s1res=eu.stat.get_stats(sg1)
-        s2res=eu.stat.get_stats(sg2)
-
-        ws1res=eu.stat.get_stats(sg1, weights=weights)
-        ws2res=eu.stat.get_stats(sg2, weights=weights)
-
-        mean1 = s1res['mean']
-        mean2 = s2res['mean']
-
-        wmean1 = ws1res['mean']
-        wmean2 = ws2res['mean']
-
-        err1 = s1res['err']
-        err2 = s2res['err']
-
-        werr1 = ws1res['err']
-        werr2 = ws2res['err']
-
-        print()
-        print("  mean meas: %g +/- %g  %g +/- %g" % (mean1,err1,mean2,err2))
-        print("w mean meas: %g +/- %g  %g +/- %g" % (wmean1,werr1,wmean2,werr2))
-
-        sel=numpy.zeros(2)
-        sel[0]=mean1/wmean1
-        sel[1]=mean2/wmean2
-
-        print("weight sel:",sel)
-        print()
-        return sel
-
-
     def read_data(self, **kw):
         """
         read data from original for or cache
@@ -712,11 +351,11 @@ class Averager(dict):
         """
         cache=kw.get("cache",False)
         if cache:
-            data, sel = self._read_cached_data(**kw)
+            data = self._read_cached_data(**kw)
         else:
-            data, sel = self._read_uncached_data(**kw)
+            data = self._read_uncached_data(**kw)
 
-        return data, sel
+        return data
 
     def _determine_test(self, **kw):
         ntest=kw.get('ntest',DEFAULT_TEST_SIZE)
@@ -740,8 +379,8 @@ class Averager(dict):
 
         data=fitsio.read(cache_file, rows=rows)
 
-        data, sel=self.select(data, **kw)
-        return data, sel
+        data=self.select(data, **kw)
+        return data
 
 
     def _read_uncached_data(self, **kw):
@@ -749,6 +388,12 @@ class Averager(dict):
         we select after reading
         """
         columns=self._get_columns()
+
+        if 'extra_cols' in kw:
+            ecols=kw['extra_cols']
+            if ecols is not None:
+                ecols=ecols.split(',')
+                columns += ecols
 
         print("reading columns:",columns)
 
@@ -767,27 +412,20 @@ class Averager(dict):
         if w.size != data.size:
             data=data[w]
 
-        data, sel=self.select(data, **kw)
+        data=self.select(data, **kw)
 
-        return data, sel
+        return data
 
     def select(self, data, **kw):
         """
         select and get the selected data and selection effect
         """
 
-        sel = None
-
         w=self._do_select(data, **kw)
         if w is not None:
-            #sel = self._get_selection_effect(data, w)
-            #sel = self._get_selection_effect_full(data, w)
-            sel = self._get_selection_effect_alt(data, w)
             data=data[w]
-        elif self['weights'] is not None:
-            sel = self._get_weighting_effect(data)
 
-        return data, sel
+        return data
 
     def _cache_in_chunks(self):
 
@@ -961,25 +599,34 @@ class AveragerRmean(Averager):
             if show_progress:
                 print("shear index:",i)
 
-            w=rev[ rev[i]:rev[i+1] ]
+            if rev[i] != rev[i+1]:
+                w=rev[ rev[i]:rev[i+1] ]
 
-            if self.shear_true_in_struct:
-                shear_true = data['shear_true'][w].mean(axis=0)
-            else:
-                shear_true = self.shears[i]
+                if self.shear_true_in_struct:
+                    shear_true = data['shear_true'][w].mean(axis=0)
+                else:
+                    shear_true = self.shears[i]
 
-            psf_corr  = Rpsf_mean*gpsf[w].mean(axis=0)
-            gmean     = g[w].mean(axis=0) - psf_corr
+                psf_corr  = Rpsf_mean*gpsf[w].mean(axis=0)
+                gmean     = g[w].mean(axis=0) - psf_corr
 
-            gmean *= sel
+                gmean *= sel
 
-            shear     = numpy.dot(Rinv, gmean)
-            shear_err = g[w].std(axis=0)/numpy.sqrt(w.size)
-            shear_err = numpy.dot(Rinv, shear_err)
+                shear     = numpy.dot(Rinv, gmean)
+                shear_err = g[w].std(axis=0)/numpy.sqrt(w.size)
+                shear_err = numpy.dot(Rinv, shear_err)
 
-            means['shear'][i] = shear
-            means['shear_err'][i] = shear_err
-            means['shear_true'][i] = shear_true
+                means['count'][i] = w.size
+                means['shear'][i] = shear
+                means['shear_err'][i] = shear_err
+                means['shear_true'][i] = shear_true
+
+        w,=numpy.where(means['count'] > 0)
+        if w.size != means.size:
+            print("    keeping %d/%d positive count" % (w.size,means.size))
+            means=means[w]
+        return means
+
 
         return means
 
@@ -1004,35 +651,41 @@ class AveragerRmean(Averager):
             if show_progress:
                 print("shear index:",i)
 
-            w=rev[ rev[i]:rev[i+1] ]
+            if rev[i] != rev[i+1]:
+                w=rev[ rev[i]:rev[i+1] ]
 
-            wts = weights[w]
-            wsum=wts.sum()
+                wts = weights[w]
+                wsum=wts.sum()
 
-            wna=wts[:,newaxis]
-            wna2=wna**2
+                wna=wts[:,newaxis]
+                wna2=wna**2
 
-            if self.shear_true_in_struct:
-                shear_true = (data['shear_true'][w]*wna).mean(axis=0)/wsum
-            else:
-                shear_true = self.shears[i]
+                if self.shear_true_in_struct:
+                    shear_true = (data['shear_true'][w]*wna).mean(axis=0)/wsum
+                else:
+                    shear_true = self.shears[i]
 
-            means['shear_true'][i] = shear_true
+                means['shear_true'][i] = shear_true
 
-            psf_corr = Rpsf_mean*(gpsf[w]*wna).sum(axis=0)/wsum
-            gmean = (g[w]*wna).sum(axis=0)/wsum - psf_corr
+                psf_corr = Rpsf_mean*(gpsf[w]*wna).sum(axis=0)/wsum
+                gmean = (g[w]*wna).sum(axis=0)/wsum - psf_corr
 
-            gmean *= sel
+                gmean *= sel
 
-            gerr2 = ( wna2 * (g[w]-gmean)**2 ).sum(axis=0)
-            gerr = numpy.sqrt(gerr2)/wsum
+                gerr2 = ( wna2 * (g[w]-gmean)**2 ).sum(axis=0)
+                gerr = numpy.sqrt(gerr2)/wsum
 
-            shear     = numpy.dot(Rinv, gmean)
-            shear_err = numpy.dot(Rinv, gerr)
+                shear     = numpy.dot(Rinv, gmean)
+                shear_err = numpy.dot(Rinv, gerr)
 
-            means['shear'][i] = shear
-            means['shear_err'][i] = shear_err
+                means['count'][i] = w.size
+                means['shear'][i] = shear
+                means['shear_err'][i] = shear_err
 
+        w,=numpy.where(means['count'] > 0)
+        if w.size != means.size:
+            print("    keeping %d/%d positive count" % (w.size,means.size))
+            means=means[w]
         return means
 
 
@@ -1490,10 +1143,12 @@ def fit_m_c_boot(data, nboot=1000):
     return fits, fitsone
 
 
-def fit_m_c(data, doprint=True, onem=False, max_shear=None):
+def fit_m_c(data, doprint=True, onem=False, max_shear=None, nocorr_select=False):
 
     strue = data['shear_true']
+
     sdiff = data['shear'] - data['shear_true']
+
     serr  = data['shear_err']
 
     if max_shear is not None:
@@ -1818,7 +1473,8 @@ def get_cache_file(run):
     return cache_file
 
 def get_mean_struct(n):
-    dt=[('shear','f8',2),
+    dt=[('count','i8'),
+        ('shear','f8',2),
         ('shear_true','f8',2),
         ('shear_err','f8',2)]
 
