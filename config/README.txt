@@ -504,7 +504,11 @@ v05deep larger deep sim, 1,000,000
     m: -1.673e-03 +/- 8.966e-04 c1: 1.871e-05 +/- 4.443e-05 c2: 1.026e-05 +/- 4.442e-05
 
 
-            
+- mcal-v14s03
+    - new style metacal
+    ngmixer/master:    6df6ffc070dba40adefbb2ca824193d6fca6f2d8
+    ngmix/keep_prepix: 60ce3ba996ea220a5c781e078611262883faf7e5
+    reredux/master:    3da81ca42438b9695faa2ff6da6ded83ededfbe9
 
 great3reredux v1
 -----------------
