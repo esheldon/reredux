@@ -27,6 +27,10 @@ def read_cosmos():
     t=t[w]
     return t
 
+def write_cosmos_matched_r50(r50_des_pixels):
+    fname='$LENSDIR/great3-cosmos-matched/great3-cosmos-r50-des-pixels.fits'
+    print("writing:",fname)
+    fitsio.write(fname, r50_des_pixels, clobber=True)
 
 def read_reredux():
     t=reredux.files.read_collated(run, columns=['flags','gauss_s2n_w','cosmos_id'],
@@ -51,8 +55,9 @@ def read_data():
 
     r50_pixels =  numpy.sqrt(q)*r50_des_pixels
 
-    s2n=rdata['gauss_s2n_w'][w]
+    s2n=rdata['gauss_s2n_w'][w[mr]]
 
+    write_cosmos_matched_r50(r50_pixels)
 
     return s2n,r50_pixels
 
