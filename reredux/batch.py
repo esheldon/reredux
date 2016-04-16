@@ -180,7 +180,8 @@ class LSFMaker(BatchMaker):
 
     def _format_walltime(self, hours):
         if hours < 10:
-            tstr = '0%d:00' % hours
+            tstr='10:00'
+            #tstr = '0%d:00' % hours
         else:
             tstr = '%d:00' % hours
         return tstr
