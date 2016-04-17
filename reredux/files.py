@@ -166,7 +166,7 @@ def get_psf_file(version, fnum, deep=False):
 # run base dir
 #
 
-def get_rundir(run):
+def get_run_dir(run):
     """
     my outputs
     """
@@ -183,7 +183,7 @@ def get_output_dir(run):
     output files
     """
 
-    basedir = get_rundir(run)
+    basedir = get_run_dir(run)
     return os.path.join(basedir, 'outputs')
 
 def get_output_file(run, fnum, beg, end):
@@ -203,24 +203,6 @@ def get_log_file(run, fnum, beg, end):
     url = get_output_file(run, fnum, beg, end)
     return url.replace('.fits', '.log')
 
-def get_plot_dir(run):
-    """
-    plots
-    """
-
-    basedir = get_rundir(run)
-    return os.path.join(basedir, 'plots')
-
-def get_plot_file(run, extra):
-    """
-    location of output file
-    """
-
-    dir=get_plot_dir(run)
-    fname = '%s-%s.eps' % (run, extra)
-    return os.path.join(dir, fname)
-
-
 #
 # collated files
 #
@@ -230,7 +212,7 @@ def get_collated_dir(run):
     output files
     """
 
-    basedir = get_rundir(run)
+    basedir = get_run_dir(run)
     return os.path.join(basedir, 'collated')
 
 def get_collated_file(run):
@@ -261,7 +243,7 @@ def get_fit_dir(run):
     files holding the fits
     """
 
-    basedir = get_rundir(run)
+    basedir = get_run_dir(run)
     return os.path.join(basedir, 'bias-fits')
 
 def get_fit_file(run, extra=None, ext='fits'):
@@ -292,6 +274,47 @@ def read_fit_file(run, extra=None):
     print("reading:",fname)
     return fitsio.read(fname)
 
+def get_means_dir(run):
+    dir=get_run_dir(run)
+    dir=path_join(dir, 'fit-m-c')
+    return dir
+
+def get_means_file(run, extra=None):
+    dir=get_means_dir(run)
+    if extra is not None:
+        extra = '-'+extra
+    else:
+        extra=''
+
+    f='%s-means%s.fits' % (run,extra)
+    return path_join(dir, f)
+get_means_url=get_means_file
+
+def get_plot_dir(run):
+    """
+    plots
+    """
+
+    basedir = get_run_dir(run)
+    return os.path.join(basedir, 'plots')
+
+def get_plot_file(run, extra=None, ext='eps'):
+    """
+    plots
+    """
+    dir=get_plot_dir(run)
+
+    parts=[run]
+    if extra is not None:
+        parts += [extra]
+
+    f='-'.join(parts)
+    f='%s.%s' % (f, ext)
+    return path_join(dir, f)
+
+get_plot_url=get_plot_file
+
+
 
 #
 # priors
@@ -302,7 +325,7 @@ def get_fitprior_dir(run):
     output files
     """
 
-    basedir = get_rundir(run)
+    basedir = get_run_dir(run)
     return os.path.join(basedir, 'fitprior')
 
 def get_fitprior_file(run, name, ext='fits'):
@@ -326,7 +349,7 @@ def get_averaged_dir(run):
     output files
     """
 
-    basedir = get_rundir(run)
+    basedir = get_run_dir(run)
     return os.path.join(basedir, 'averaged')
 
 def get_averaged_file(run, corr_run):
@@ -394,7 +417,7 @@ def get_lsf_dir(run):
     output files
     """
 
-    basedir = get_rundir(run)
+    basedir = get_run_dir(run)
     return os.path.join(basedir, 'lsf')
 
 
@@ -421,7 +444,7 @@ def get_wq_dir(run):
     output files
     """
 
-    basedir = get_rundir(run)
+    basedir = get_run_dir(run)
     return os.path.join(basedir, 'wq')
 
 
@@ -449,7 +472,7 @@ def get_slr_dir(run):
     output files
     """
 
-    basedir = get_rundir(run)
+    basedir = get_run_dir(run)
     return os.path.join(basedir, 'slr')
 
 
