@@ -386,6 +386,15 @@ v05deep larger deep sim, 1,000,000
 
 - v13
     - small new run 2M with fixes for psf center and kolmogorov
+    - deconv
+        - adding noise fix helped with the additive, not the m though
+        - trying trim image to see if that fixes it
+            - whoa, worse again
+        - other ideas
+            - maybe stamps too small
+            - maybe constant sigma weight is a bad idea
+            - maybe wcs and k space is not working?
+
 - v14
     - same as v13 but 100M
     - mcal-v14s02
