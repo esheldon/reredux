@@ -26,6 +26,9 @@ parser=argparse.ArgumentParser(formatter_class=fclass)
 
 parser.add_argument('runs', nargs='+',help='runs to use in fit')
 
+parser.add_argument('--chunksize',type=int,default=1000000,
+                    help='size of chunks when reading')
+
 parser.add_argument('--select',default=None,
                     help='string for selection, refer to data[field] etc.')
 parser.add_argument('--select-from',default=None,
@@ -36,7 +39,11 @@ parser.add_argument('-d',default=None,help='file is in a local dir')
 parser.add_argument('--ntest',default=None,type=int,
                     help='work on a small subset for quick tests')
 
-parser.add_argument('--weights',default=None,help='type of weight to use, noise or s2n')
+#parser.add_argument('--weights',default=None,help='type of weight to use, noise or s2n')
+parser.add_argument(
+    '--weighted',
+    action='store_true',
+)
 parser.add_argument('--s2n-soft',type=float,default=10.0)
 parser.add_argument('--shapenoise',type=float,default=0.20)
 
@@ -51,7 +58,11 @@ parser.add_argument('--fit-only',action='store_true',
 def main():
     args = parser.parse_args()
 
-    summer=reredux.averaging.SummerReredux(args)
+    conf=reredux.files.read_config(args.runs[0])
+    if conf['fitter_type']=='metacal-deconv':
+        summer=reredux.averaging.SummerDeconv(args)
+    else:
+        summer=reredux.averaging.SummerReredux(args)
     summer.go()
 
     summer.plot_fits()

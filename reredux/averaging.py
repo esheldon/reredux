@@ -67,6 +67,27 @@ class SummerReredux(Summer):
         fname=files.get_collated_file(run)
         return fname
 
+class SummerDeconv(SummerReredux):
+    def __init__(self, args):
+        super(SummerDeconv,self).__init__(args)
+
+        self.namer=Namer(front=None)
+        self.gpsf_name='psfrec_g'
+
+    def _get_g(self, data, w, type):
+        n=self.namer
+        if type=='noshear':
+            name=n('e')
+        else:
+            name=n('e_%s' % type)
+
+        if name not in data.dtype.names:
+            g = None
+        else:
+            g = data[name][w]
+
+        return g
+
 
 '''
 class Averager(dict):
@@ -607,7 +628,6 @@ class Averager(dict):
         print("writing fit data to file:",fname)
         fitsio.write(fname, fits, clobber=True)
 
-'''
 class AveragerNoCorr(Averager):
 
     def _get_means_file(self):
@@ -670,7 +690,7 @@ class AveragerNoCorr(Averager):
         ]
 
         return columns
-
+'''
 
 def fit_m_c_boot(data, nboot=1000):
     fits=fit_m_c(data)
