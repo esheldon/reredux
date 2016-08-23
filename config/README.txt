@@ -406,6 +406,7 @@ v05deep larger deep sim, 1,000,000
         - 12 fixed sigma weight 2.0 in pixels
             - unbiased... note no extra noise though
         - 13 same as 12 but no fix noise
+            - looks worse
 
         - other ideas
             - maybe stamps too small

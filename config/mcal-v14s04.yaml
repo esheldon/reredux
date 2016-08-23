@@ -1,4 +1,4 @@
-reredux_config: "v13small"
+reredux_config: "v14"
 sim_type: "egret"
 
 global_seed: 22698
