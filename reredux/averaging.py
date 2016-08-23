@@ -42,7 +42,7 @@ class SummerReredux(Summer):
         # new convention
         shears=[]
         for shear in shears_orig:
-            shear[0] *= -1
+            #shear[0] *= -1
 
             shears += [shear]
 

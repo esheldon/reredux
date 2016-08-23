@@ -390,10 +390,31 @@ v05deep larger deep sim, 1,000,000
         - adding noise fix helped with the additive, not the m though
         - trying trim image to see if that fixes it
             - whoa, worse again
+        - 06 trim k image in circle
+            - looks ok for c, but still bad m
+        - 07 fixed dk=0.25
+            - same
+        - 08 temporarily turning off full wcs
+            - better in g1, hmm....
+            - but turns out I was still using sigma_weight in arcsec assuming
+            old wcs
+        - 09 temporarily turning off full wcs and turning off fix noise to see
+          how much the correlated noise may be a problem
+        - 10 same as 08 but fixed sigma weight
+            - now looks like ones with wcs.  So the weight size matters.
+        - 11 fixed sigma weight 1.5 in pixels
+        - 12 fixed sigma weight 2.0 in pixels
+            - unbiased... note no extra noise though
+        - 13 same as 12 but no fix noise
+
         - other ideas
             - maybe stamps too small
             - maybe constant sigma weight is a bad idea
             - maybe wcs and k space is not working?
+
+- v14 deconv
+    - mcal-v14s04
+        - no extra noise
 
 - v14
     - same as v13 but 100M
