@@ -416,6 +416,10 @@ v05deep larger deep sim, 1,000,000
 - v14 deconv
     - mcal-v14s04
         - no extra noise
+        - about a percent in each component
+    - mcal-v14s04
+        - sqrt(5)
+        - use full wcs
 
 - v14
     - same as v13 but 100M
