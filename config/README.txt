@@ -416,10 +416,13 @@ v05deep larger deep sim, 1,000,000
 - v14 deconv
     - mcal-v14s04
         - no extra noise
-        - about a percent in each component
-    - mcal-v14s04
-        - sqrt(5)
+        - about a percent in each component, opposite signs
+    - mcal-v14s05
+        - sigma weight = sqrt(5)*1.05*0.265
         - use full wcs
+        - not as good, -4% in g1. because of weight or using full wcs?
+    - mcal-v14s06
+        - same as s05 but just sigma_weight_factor=2
 
 - v14
     - same as v13 but 100M
