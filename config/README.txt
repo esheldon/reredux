@@ -424,6 +424,9 @@ v05deep larger deep sim, 1,000,000
     - mcal-v14s06
         - same as s05 but just sigma_weight_factor=2
 
+TODO - extra noise
+     - non-symmetric psfs from nsim?
+
 - v14
     - same as v13 but 100M
     - mcal-v14s02
