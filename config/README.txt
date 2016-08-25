@@ -407,6 +407,28 @@ v05deep larger deep sim, 1,000,000
             - unbiased... note no extra noise though
         - 13 same as 12 but no fix noise
             - looks worse
+        - 14 for weight use factor of two bigger than psf
+            R: [ 0.26099306  0.26574938]
+            Rpsf: [ 0.  0.]
+              m1: 4.784e-03 +/- 4.445e-03 c1: -7.762e-05 +/- 1.496e-04  r1: 0.0818
+              m2: -2.384e-03 +/- 4.478e-03 c2: -1.711e-05 +/- 1.616e-04  r2: 0.0189
+              m:  9.403e-04 +/- 3.167e-03
+              c1: -8.821e-05 +/- 1.563e-04
+              c2: -1.485e-05 +/- 1.560e-04
+
+        - 15 extra noise
+            - looks bad
+        - 16 same as 14 but deweight
+            - has higher sensitivity but about the same noise, which
+              seems to be dominated by scatter in the shear fields?
+            R: [ 0.51611103  0.52558817]
+            Rpsf: [ 0.  0.]
+              m1: 6.936e-03 +/- 4.346e-03 c1: -5.260e-05 +/- 1.463e-04
+              m2: -4.418e-04 +/- 4.380e-03 c2: -1.049e-05 +/- 1.580e-04
+              m:  2.980e-03 +/- 3.097e-03
+              c1: -6.349e-05 +/- 1.528e-04
+              c2: -8.164e-06 +/- 1.526e-04
+        - 17 same as 16 but extra noise
 
         - other ideas
             - maybe stamps too small
