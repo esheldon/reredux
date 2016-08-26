@@ -417,7 +417,15 @@ v05deep larger deep sim, 1,000,000
               c2: -1.485e-05 +/- 1.560e-04
 
         - 15 extra noise
-            - looks bad
+            - looks worse
+            R: [ 0.25643193  0.2697692 ]
+            Rpsf: [ 0.  0.]
+              m1: 2.759e-02 +/- 6.513e-03 c1: 7.815e-05 +/- 2.193e-04  r1: 0.0818
+              m2: -1.406e-02 +/- 5.939e-03 c2: 9.953e-05 +/- 2.143e-04  r2: 0.0189
+              m:  5.257e-03 +/- 4.485e-03
+              c1: 1.663e-05 +/- 2.213e-04
+              c2: 1.127e-04 +/- 2.210e-04
+
         - 16 same as 14 but deweight
             - has higher sensitivity but about the same noise, which
               seems to be dominated by scatter in the shear fields?
@@ -429,6 +437,22 @@ v05deep larger deep sim, 1,000,000
               c1: -6.349e-05 +/- 1.528e-04
               c2: -8.164e-06 +/- 1.526e-04
         - 17 same as 16 but extra noise
+            R: [ 0.43081698  0.4529229 ]
+            Rpsf: [ 0.  0.]
+              m1: 3.884e-02 +/- 6.234e-03 c1: -1.275e-04 +/- 2.099e-04  r1: 0.0818
+              m2: -7.173e-03 +/- 5.708e-03 c2: 4.795e-06 +/- 2.060e-04  r2: 0.0189
+              m:  1.417e-02 +/- 4.326e-03
+              c1: -1.954e-04 +/- 2.135e-04
+              c2: 1.932e-05 +/- 2.132e-04
+        - 18 turn off k image trimming
+            R: [ 0.43055414  0.45292981]
+            Rpsf: [ 0.  0.]
+              m1: 3.496e-02 +/- 6.091e-03 c1: -1.639e-04 +/- 2.051e-04  r1: 0.0818
+              m2: -3.261e-03 +/- 5.524e-03 c2: 1.974e-05 +/- 1.993e-04  r2: 0.0189
+              m:  1.447e-02 +/- 4.181e-03
+              c1: -2.204e-04 +/- 2.063e-04
+              c2: 3.180e-05 +/- 2.060e-04
+
 
         - other ideas
             - maybe stamps too small
@@ -445,6 +469,14 @@ v05deep larger deep sim, 1,000,000
         - not as good, -4% in g1. because of weight or using full wcs?
     - mcal-v14s06
         - same as s05 but just sigma_weight_factor=2
+        R: [ 0.26098296  0.26567978]
+        Rpsf: [ 0.  0.]
+          m1: 1.190e-02 +/- 6.244e-04 c1: 4.697e-05 +/- 2.166e-05  r1: -0.0335
+          m2: -6.159e-03 +/- 6.239e-04 c2: 1.699e-05 +/- 2.207e-05  r2: 0.0593
+          m:  2.707e-03 +/- 5.764e-04
+          c1: 5.766e-05 +/- 2.853e-05
+          c2: 3.559e-05 +/- 2.855e-05
+
 
 TODO - extra noise
      - non-symmetric psfs from nsim?
@@ -602,6 +634,44 @@ TODO - extra noise
           c1: 1.472e-05 +/- 2.879e-05
           c2: 2.056e-05 +/- 2.881e-05
 
+- v15small
+    - larger psf
+    - mcal-v15small01
+        R: [ 0.35079861  0.39969921]
+        Rpsf: [ 0.  0.]
+          m1: 1.413e-01 +/- 5.268e-03 c1: 2.665e-04 +/- 1.887e-04  r1: -1.03e-17
+          m2: -4.324e-03 +/- 4.505e-03 c2: 1.098e-04 +/- 1.610e-04  r2: -0
+          m:  6.866e-02 +/- 4.578e-03
+          c1: 2.665e-04 +/- 2.316e-04
+          c2: 1.098e-04 +/- 2.316e-04
+    - note if I use R[1] for both corrections it looks fine
+        R: [ 0.39969921  0.39969921]
+        Rpsf: [ 0.  0.]
+          m1: 1.666e-03 +/- 4.623e-03 c1: 2.339e-04 +/- 1.656e-04  r1: -1.03e-17
+          m2: -4.324e-03 +/- 4.505e-03 c2: 1.098e-04 +/- 1.610e-04  r2: -0
+          m:  -1.322e-03 +/- 3.238e-03
+          c1: 2.339e-04 +/- 1.639e-04
+          c2: 1.098e-04 +/- 1.639e-04
+
+      I wonder if this means the stamps are too small
+
+- v16small
+    - same as v15small but 48x48 stamps for all objects
+
+    - mcal-v16small01
+        - looks better!
+
+        R: [ 0.39821887  0.39999097]
+        Rpsf: [ 0.  0.]
+        writing: /nfs/slac/des/fs1/g/sims/esheldon/lensing/shapesim/mcal-v16small01/fit-m-c/mcal-v16small01-means.fits
+          m1: 1.291e-03 +/- 4.414e-03 c1: -7.902e-07 +/- 1.581e-04  r1: -1.03e-17
+          m2: 3.712e-03 +/- 4.742e-03 c2: -3.948e-04 +/- 1.695e-04  r2: -0
+          m:  2.499e-03 +/- 3.248e-03
+          c1: -7.933e-07 +/- 1.643e-04
+          c2: -3.948e-04 +/- 1.643e-04
+
+    - mcal-v16small02
+        - extra noise
 
 great3reredux v1
 -----------------
