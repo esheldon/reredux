@@ -656,6 +656,8 @@ TODO - extra noise
       I wonder if this means the stamps are too small
 
 - v16small
+    - ARGH, turns out fixing size wasn't working , but in 
+      egret
     - same as v15small but 48x48 stamps for all objects
 
     - mcal-v16small01
@@ -720,6 +722,17 @@ TODO - extra noise
               c1: 2.728e-04 +/- 2.775e-04
               c2: -7.658e-04 +/- 2.775e-04
 
+    - mcal-v16small05
+        - gaussian weight
+        - no extra noise
+        - not doing deweight
+
+- v17small
+    - still a remaining bug here... some 42,44,46 sizes still
+
+    - mcal-v17small01
+        - gaussian weight and now have some s/n to cut on when we
+          use more noise
 
 great3reredux v1
 -----------------

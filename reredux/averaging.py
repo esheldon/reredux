@@ -88,6 +88,8 @@ class SummerDeconv(SummerReredux):
 
         return g
 
+    def _get_s2n_name(self, data):
+        return self.namer('s2n_w')
 
 '''
 class Averager(dict):
