@@ -9,6 +9,8 @@ parser.add_argument('batch_system',help='batch system')
 parser.add_argument('run',help='run identifier')
 parser.add_argument('--missing',action='store_true',
                     help='only do missing splits')
+parser.add_argument('--wq-extra',
+                    help='extra start commands for wq')
 #parser.add_argument('-w','--walltime',default='04:00',
 #                    help='walltime for lsf')
 
@@ -17,7 +19,8 @@ def main():
 
     maker=reredux.batch.get_maker(args.batch_system,
                                   args.run,
-                                  missing=args.missing)
+                                  missing=args.missing,
+                                  wq_extra=args.wq_extra)
     maker.write_scripts()
 
 main()

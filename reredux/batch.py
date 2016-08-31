@@ -6,7 +6,7 @@ from . import files
 # Gets added to calculated walltime
 BASE_WALLTIME=2.0
 
-def get_maker(batch_system, run, missing=False):
+def get_maker(batch_system, run, **kw):
     if batch_system=='lsf':
         cls = LSFMaker
     elif batch_system=='slr':
@@ -16,7 +16,7 @@ def get_maker(batch_system, run, missing=False):
     else:
         raise ValueError("bad batch system: '%s'" % batch_system)
 
-    maker = cls(run, missing=missing)
+    maker = cls(run, **kw)
     return maker
 
 def get_splits(ntot, nper):
@@ -41,6 +41,10 @@ class BatchMaker(dict):
 
         self['run'] = run
         self['missing'] = missing
+
+        self['wq_extra'] = kw.get('wq_extra',None)
+        if self['wq_extra'] is None:
+            self['wq_extra']=''
 
         self._load_configs()
         self._set_global_seed()
@@ -448,7 +452,7 @@ job_name: %(job_name)s
 command: |
     echo "working on host: $(hostname)"
 
-    . ~/shell_scripts/nsim2-prepare.sh
+    %(wq_extra)s
 
     config_file=%(config_file)s
     meds_file=%(meds_file)s
