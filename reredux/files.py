@@ -56,51 +56,32 @@ def get_egret_data_dir(version):
 # wombat sims
 #
 
-def get_wombat_config_dir():
-    """
-    location of config files for wombat sims
-    """
-    return get_config_dir()
-
-def get_wombat_config_file(version):
-    """
-    location of config file for wombat sim
-    """
-    d=get_wombat_config_dir()
-    name='wombat-%s.yaml' % version
-    return os.path.join(d, name)
-
 def read_wombat_config(version):
     """
     location of config file for wombat sim
     """
-    import yaml
-    fname=get_wombat_config_file(version)
+    import wombat
 
-    print("reading wombat config:",fname)
-    with open(fname) as fobj:
-        data = yaml.load(fobj)
+    conf=wombat.files.read_config(version)
 
-    return data
+    conf['Nfiles'] = conf['output']['nfiles']
+    conf['Ngals'] = conf['output']['nobjects']
+    return conf
 
-
-def get_wombat_basedir():
+def get_wombat_meds_file(version, fnum):
     """
-    base directory for egret images
+    location of the wombat MEDS file
     """
-    return os.environ['WOMBAT_DATA_DIR']
+    import wombat
+    return wombat.files.get_meds_file(version, fnum)
 
-def get_wombat_data_dir(version):
-    """
-    directory holding images
-    """
-    basedir = get_wombat_basedir()
-    return os.path.join(basedir, version)
 
-def get_truth_file(version, fnum):
-    d = get_wombat_data_dir(version)
-    fname = 'truth_catalog-%s-%04d.fits' % (version,fnum)
-    return os.path.join(d,fname)
+def get_wombat_truth_file(version, fnum):
+    """
+    location of the file holding some truth information for the wombat files
+    """
+    import wombat
+    return wombat.files.get_truth_file(version, fnum)
 
 
 def get_meds_file(version, fnum, type='egret'):
@@ -110,11 +91,11 @@ def get_meds_file(version, fnum, type='egret'):
     if type=='egret':
         d = get_egret_data_dir(version)
         fname = '%s_meds%06d.fits.fz' % (version,fnum)
+        fname = os.path.join(d, fname)
     else:
-        d = get_wombat_data_dir(version)
-        fname = 'sim-%s-%04d.fits' % (version,fnum)
+        fname = get_wombat_meds_file(version, fnum)
 
-    return os.path.join(d, fname)
+    return fname
 
 def get_psf_file(version, fnum):
     """
@@ -444,9 +425,15 @@ def get_wq_dir(run):
     output files
     """
 
-    basedir = get_run_dir(run)
-    return os.path.join(basedir, 'wq')
+    tmpdir=os.environ['TMPDIR']
+    dir=os.path.join(
+        tmpdir,
+        'great3redux',
+        'wq',
+        run,
+    )
 
+    return dir
 
 def get_wq_file(run, fnum, beg, end, missing=False):
     """

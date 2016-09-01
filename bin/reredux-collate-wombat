@@ -28,13 +28,13 @@ def get_collated_file(run, temp=False):
 
     return fname
 
-def read_meds_data(sim_type,version, fnum):
+def meds_exists(sim_type,version, fnum):
     fname=files.get_meds_file(version, fnum, type=sim_type)
     if not os.path.exists(fname):
         print("missing meds file:",fname)
-        return None
+        return False
     else:
-        return fitsio.read(fname, ext='object_data')
+        return True
 
 def load_data(fname):
     print("    ",fname)
@@ -82,11 +82,10 @@ def main():
         for fnum in xrange(nfiles):
             print("%d/%d" % (fnum+1, nfiles))
 
-            mdata=read_meds_data(sim_type,version, fnum)
-            if mdata is None:
+            if not meds_exists(sim_type, version, fnum):
                 continue
 
-            truth_file=files.get_truth_file(version, fnum)
+            truth_file=files.get_wombat_truth_file(version, fnum)
             truth_data=fitsio.read(truth_file)
 
             for beg,end in zip(beglist, endlist):
@@ -103,8 +102,8 @@ def main():
                 data=load_data(fname)
 
                 data['shear_index'] = fnum
-                data['shear_true'][:,0] = truth_data['g1'][beg:end+1]
-                data['shear_true'][:,1] = truth_data['g2'][beg:end+1]
+                data['shear_true'][:,0] = truth_data['shear1'][beg:end+1]
+                data['shear_true'][:,1] = truth_data['shear2'][beg:end+1]
 
                 data['wcs_dudx'][:] = truth_data['wcs_dudx'][beg:end+1]
                 data['wcs_dudy'][:] = truth_data['wcs_dudy'][beg:end+1]

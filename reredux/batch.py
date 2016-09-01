@@ -58,7 +58,6 @@ class BatchMaker(dict):
         Write all scripts
         """
 
-        #nfiles = self.reredux_conf['nfiles']
         nfiles = self.reredux_conf['Nfiles']
         self.njobs_written = 0
 
@@ -418,31 +417,50 @@ job_name: %(job_name)s
 command: |
     echo "working on host: $(hostname)"
 
-    . ~/shell_scripts/nsim2-prepare.sh
+    %(wq_extra)s
 
     config_file=%(config_file)s
     psf_file=%(psf_file)s
     meds_file=%(meds_file)s
 
     output_file=%(output_file)s
+    log_file=%(log_file)s
 
     beg=%(beg)s
     end=%(end)s
 
     seed=%(seed)s
 
-    # we need to make the scratch directory
-    #tmpdir="$TMPDIR/ngmixit-$RANDOM"
-    #mkdir -p $tmpdir
-    #cd $tmpdir
+    pushd $TMPDIR
+    tmplog=$(basename $log_file)
 
-    python -u $(which ngmixit)         \\
+    ngmixit                            \\
             --seed ${seed}             \\
             --psf-file=${psf_file}     \\
             --fof-range $beg,$end      \\
             ${config_file}             \\
             ${output_file}             \\
-            ${meds_file}
+            ${meds_file} &> ${tmplog}
+
+    status=$?
+
+    echo "moving log file ${tmplog} -> ${log_file}" >> ${tmplog}
+
+    # errors go to the jobs stderr
+    mv -fv "${tmplog}" "${log_file}" 1>&2
+    status2=$?
+
+    if [[ $status2 != "0" ]]; then
+        # this error message will go to main error file
+        echo "error ${status2} moving log to: ${log_file}" 1>&2
+
+        status=$status2
+    fi
+
+    popd
+
+    exit $status
+
 """
 
 _wombat_wq_template="""
@@ -458,23 +476,44 @@ command: |
     meds_file=%(meds_file)s
 
     output_file=%(output_file)s
+    log_file=%(log_file)s
 
     beg=%(beg)s
     end=%(end)s
 
     seed=%(seed)s
 
-    # we need to make the scratch directory
-    #tmpdir="$TMPDIR/ngmixit-$RANDOM"
-    #mkdir -p $tmpdir
-    #cd $tmpdir
+    pushd $TMPDIR
 
-    python -u $(which ngmixit)         \\
+    tmplog=$(basename $log_file)
+
+    ngmixit                            \\
             --seed ${seed}             \\
             --fof-range $beg,$end      \\
             ${config_file}             \\
             ${output_file}             \\
-            ${meds_file}
+            ${meds_file} &> ${tmplog}
+
+    status=$?
+
+    echo "moving log file ${tmplog} -> ${log_file}" >> ${tmplog}
+
+    # errors go to the jobs stderr
+    mv -fv "${tmplog}" "${log_file}" 1>&2
+    status2=$?
+
+    if [[ $status2 != "0" ]]; then
+        # this error message will go to main error file
+        echo "error ${status2} moving log to: ${log_file}" 1>&2
+
+        status=$status2
+    fi
+
+    popd
+
+    exit $status
+
+
 """
 
 
