@@ -1,3 +1,117 @@
+wombat
+-------
+v006
+    - pretty standard, with exp
+v006ln
+    - low noise, no shape noise, exp
+    - mcal-w006ln-01
+        - deconv
+		R: [ 0.25808106  0.26646678]
+		Rpsf: [ 0.  0.]
+		  m1: 4.806e-03 +/- 3.814e-03 c1: 5.980e-05 +/- 1.224e-04  r1: 0.0373
+		  m2: -3.886e-02 +/- 2.973e-03 c2: -3.025e-05 +/- 9.105e-05  r2: -0.0506
+		  m:  -1.600e-02 +/- 2.675e-03
+		  c1: 3.490e-05 +/- 1.186e-04
+		  c2: -6.564e-05 +/- 1.186e-04
+
+    - mcal-w006ln-02
+        - deconv not forcing same size for all k images
+		R: [ 0.25803248  0.26641912]
+		Rpsf: [ 0.  0.]
+		  m1: 5.541e-03 +/- 4.146e-03 c1: 6.751e-05 +/- 1.330e-04  r1: 0.0373
+		  m2: -3.879e-02 +/- 2.942e-03 c2: -3.103e-05 +/- 9.012e-05  r2: -0.0506
+		  m:  -1.558e-02 +/- 2.801e-03
+		  c1: 4.222e-05 +/- 1.242e-04
+		  c2: -6.696e-05 +/- 1.242e-04
+	- mcal-w006ln-03
+		- using sigma_weight_factor = 1.2
+        kept 934071/1000000 from flags
+		R: [ 0.49061458  0.48975723]
+		Rpsf: [ 0.  0.]
+		  m1: -3.780e-02 +/- 2.732e-03 c1: 1.307e-05 +/- 8.765e-05  r1: 0.0373
+		  m2: -5.039e-02 +/- 4.294e-03 c2: -1.254e-05 +/- 1.315e-04  r2: -0.0506
+		  m:  -4.380e-02 +/- 2.549e-03
+		  c1: 5.886e-06 +/- 1.130e-04
+		  c2: -2.274e-05 +/- 1.130e-04
+	- mcal-w006ln-04
+		- using sigma_weight_factor = sqrt(5) = 2.236
+
+		R: [ 0.21611933  0.22905206]
+		Rpsf: [ 0.  0.]
+		  m1: 3.529e-02 +/- 5.854e-03 c1: 1.005e-04 +/- 1.878e-04  r1: 0.0373
+		  m2: -3.892e-02 +/- 2.579e-03 c2: -3.547e-05 +/- 7.897e-05  r2: -0.0506
+		  m:  -7.470e-05 +/- 3.754e-03
+		  c1: 5.813e-05 +/- 1.664e-04
+		  c2: -9.563e-05 +/- 1.664e-04
+
+	- mcal-w006ln-05
+        - no noise correction
+		- using sigma_weight_factor = sqrt(5) = 2.236
+        R: [ 0.22778043  0.22776754]
+        Rpsf: [ 0.  0.]
+          m1: -2.432e-02 +/- 1.950e-03 c1: -4.393e-07 +/- 6.255e-05  r1: 0.0373
+          m2: -3.479e-02 +/- 2.904e-03 c2: -1.626e-05 +/- 8.892e-05  r2: -0.0506
+          m:  -2.931e-02 +/- 1.759e-03
+          c1: -6.413e-06 +/- 7.798e-05
+          c2: -2.474e-05 +/- 7.800e-05
+
+	- mcal-w006ln-06
+		- fix sigma weight
+		R: [ 0.23107353  0.24214065]
+		Rpsf: [ 0.  0.]
+		  m1: 2.265e-02 +/- 5.096e-03 c1: 8.524e-05 +/- 1.635e-04  r1: 0.0373
+		  m2: -3.900e-02 +/- 2.722e-03 c2: -3.003e-05 +/- 8.336e-05  r2: -0.0506
+		  m:  -6.728e-03 +/- 3.319e-03
+		  c1: 5.007e-05 +/- 1.471e-04
+		  c2: -8.002e-05 +/- 1.472e-04
+
+	- mcal-w006ln-07
+		- used x_interpolant='lanczos15'
+        - the two R values agree now, and the errors are not *so* different
+          between m1 and m2. why don't thy agree?
+		R: [ 0.26573648  0.26565307]
+		Rpsf: [ 0.  0.]
+		  m1: -2.671e-02 +/- 2.070e-03 c1: 2.714e-06 +/- 6.641e-05  r1: 0.0373
+		  m2: -3.666e-02 +/- 3.070e-03 c2: -1.783e-05 +/- 9.403e-05  r2: -0.0506
+		  m:  -3.145e-02 +/- 1.859e-03
+		  c1: -2.961e-06 +/- 8.239e-05
+		  c2: -2.589e-05 +/- 8.241e-05
+
+clues
+    - getting kmax too large errors, never had those before
+        - don't see them for noisy data, but still odd
+    - errors in m1,m2 don't agree, better with l15 but still difer
+    - not working at high s/n!
+
+v007ln
+--------
+
+Want to see if non-trivial wcs is causing a problem wcs is now a simpler; well
+it is still Tan but simple.  Could also try pixel_scale: 0.263
+
+v006ln was highly non-trivial
+
+	- mcal-w007ln-01
+		- used x_interpolant='lanczos15'
+		- wow, the errors are way less. I had expected low errors since
+		  there is no shape noise
+		R: [ 0.26547729  0.26535603]
+		Rpsf: [ 0.  0.]
+		  m1: -3.140e-02 +/- 4.078e-04 c1: -1.539e-05 +/- 1.310e-05  r1: -0.0398
+		  m2: -3.088e-02 +/- 5.268e-04 c2: -2.330e-05 +/- 1.751e-05  r2: -0.0557
+		  m:  -3.113e-02 +/- 3.360e-04
+		  c1: -1.573e-05 +/- 1.552e-05
+		  c2: -2.284e-05 +/- 1.552e-05
+
+v007ln
+---------
+- pure pixel scale
+- psf pure e2, high ellip
+
+- mcal-w008ln-01
+    - used x_interpolant='lanczos15'
+
+
 great3reredux v3
 ----------------
 v3.yaml

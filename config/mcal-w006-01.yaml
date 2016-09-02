@@ -75,6 +75,7 @@ model_pars:
       width: 0.27
 
 # longer for more complex wcs
+# this is approximate; 0.7 on some systems
 time_per: 1.0
 
 # all is 10000
