@@ -105,10 +105,11 @@ def main():
                 data['shear_true'][:,0] = truth_data['shear1'][beg:end+1]
                 data['shear_true'][:,1] = truth_data['shear2'][beg:end+1]
 
-                data['wcs_dudx'][:] = truth_data['wcs_dudx'][beg:end+1]
-                data['wcs_dudy'][:] = truth_data['wcs_dudy'][beg:end+1]
-                data['wcs_dvdx'][:] = truth_data['wcs_dvdx'][beg:end+1]
-                data['wcs_dvdy'][:] = truth_data['wcs_dvdy'][beg:end+1]
+                if 'wcs_dudx' in truth_data.dtype.names:
+                    data['wcs_dudx'][:] = truth_data['wcs_dudx'][beg:end+1]
+                    data['wcs_dudy'][:] = truth_data['wcs_dudy'][beg:end+1]
+                    data['wcs_dvdx'][:] = truth_data['wcs_dvdx'][beg:end+1]
+                    data['wcs_dvdy'][:] = truth_data['wcs_dvdy'][beg:end+1]
 
                 if first:
                     first=False

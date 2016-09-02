@@ -2,6 +2,38 @@ wombat
 -------
 v006
     - pretty standard, with exp
+    - mcal-w006-01
+    	- usual gauss/gauss fitting
+			R: [ 0.55699758  0.55846702]
+			Rpsf: [ 0.13382072  0.13298203]
+			  m1: -7.402e-03 +/- 6.092e-03 c1: -2.817e-04 +/- 1.954e-04  r1: 0.0373
+			  m2: -8.971e-03 +/- 6.278e-03 c2: -2.207e-04 +/- 1.923e-04  r2: -0.0506
+			  m:  -8.150e-03 +/- 4.388e-03
+			  c1: -2.826e-04 +/- 1.945e-04
+			  c2: -2.220e-04 +/- 1.945e-04
+
+		s/n > 10
+        	kept: 648791/999389 = 0.649188
+			R: [ 0.66737265  0.66915955]
+			Rpsf: [ 0.14562377  0.14503495]
+
+			Rsel: [ 0.00281923  0.00282607]
+			Rpsf_sel: [ 0.00506003  0.00460277]
+			without correction
+			  m1: -1.493e-03 +/- 6.513e-03 c1: 4.268e-05 +/- 2.089e-04  r1: 0.0373
+			  m2: -5.237e-03 +/- 6.493e-03 c2: -3.948e-05 +/- 1.988e-04  r2: -0.0506
+			  m:  -3.277e-03 +/- 4.617e-03
+			  c1: 4.054e-05 +/- 2.046e-04
+			  c2: -4.252e-05 +/- 2.047e-04
+
+			with correction
+			  m1: -5.691e-03 +/- 6.486e-03 c1: -1.019e-05 +/- 2.081e-04  r1: 0.0373
+			  m2: -9.426e-03 +/- 6.465e-03 c2: -8.726e-05 +/- 1.980e-04  r2: -0.0506
+			  m:  -7.471e-03 +/- 4.597e-03
+			  c1: -1.232e-05 +/- 2.038e-04
+			  c2: -9.028e-05 +/- 2.038e-04
+
+
 v006ln
     - low noise, no shape noise, exp
     - mcal-w006ln-01
@@ -93,7 +125,7 @@ v006ln was highly non-trivial
 
 	- mcal-w007ln-01
 		- used x_interpolant='lanczos15'
-		- wow, the errors are way less. I had expected low errors since
+		- wow, the errors are factor of 5 less. I had expected low errors since
 		  there is no shape noise
 		R: [ 0.26547729  0.26535603]
 		Rpsf: [ 0.  0.]
@@ -110,6 +142,13 @@ v007ln
 
 - mcal-w008ln-01
     - used x_interpolant='lanczos15'
+		R: [ 0.26559465  0.26552768]
+		Rpsf: [ 0.  0.]
+		  m1: -3.132e-02 +/- 4.407e-04 c1: 3.817e-05 +/- 1.513e-05  r1: -0.0248
+		  m2: -3.075e-02 +/- 4.951e-04 c2: -2.716e-05 +/- 1.608e-05  r2: 0.132
+		  m:  -3.105e-02 +/- 3.317e-04
+		  c1: 3.794e-05 +/- 1.562e-05
+		  c2: -2.848e-05 +/- 1.568e-05
 
 
 great3reredux v3
