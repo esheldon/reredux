@@ -37,16 +37,31 @@ class SummerReredux(Summer):
         runs=args.runs
         conf=files.read_config(runs[0])
         sconf = files.read_sim_config(conf)
-        shears_orig = sconf['shearmaker']['shears']
 
-        # new convention
-        shears=[]
-        for shear in shears_orig:
-            shear[0] *= -1
+        nshear = None
+        shears = None
+        if 'shearmaker' in sconf:
+            shears_orig = sconf['shearmaker']['shears']
 
-            shears += [shear]
+            # new convention
+            shears=[]
+            for shear in shears_orig:
+                shear[0] *= -1
 
-        super(SummerReredux,self).__init__(conf, shears, args)
+                shears += [shear]
+
+        else:
+            # this must be a wombat sim, or consistent with that
+            # one shear per file
+            nshear = sconf['output']['nfiles']
+
+
+        super(SummerReredux,self).__init__(
+            conf,
+            args,
+            shears=shears,
+            nshear=nshear,
+        )
 
     def _preselect(self, data):
         """
