@@ -114,6 +114,7 @@ clues
         - don't see them for noisy data, but still odd
     - errors in m1,m2 don't agree, better with l15 but still difer
     - not working at high s/n!
+	- hmm... galaxies seem awfully big
 
 v007ln
 --------
@@ -150,6 +151,8 @@ v007ln
 		  c1: 3.794e-05 +/- 1.562e-05
 		  c2: -2.848e-05 +/- 1.568e-05
 
+- mcal-w008ln-01
+	- fitting version, gauss/gauss
 
 great3reredux v3
 ----------------
