@@ -1,0 +1,69 @@
+# this one used x_interpolant='lanczos15'
+reredux_config: "v006ln"
+sim_type: "wombat"
+psfs_in_file: True
+
+global_seed: 31612
+
+fitter_type: "metacal-deconv"
+imageio_type: "meds-simp-sim"
+
+fit_me_galaxy: False
+fit_coadd_galaxy: True
+use_coadd_prefix: False
+
+model_nbrs: False
+psf_ind_field: 'psf_id'
+
+region: "weight"
+
+min_weight: 1.0e-4
+
+print_params: True
+
+# find the center and reset the jacobians
+#pre_find_center: True
+pre_find_center: False
+
+do_shear: False
+
+# there are none
+replace_bad_pixels: False
+
+psf_pars:
+  model: 'gauss'
+  ntry: 5
+  fit_pars:
+      maxfev: 2000
+
+metacal_pars:
+  step: 0.01
+
+deconv_pars:
+    weight_type: "ksigmac"
+
+    sigma_weight_factor: 2.0
+    deweight: False
+
+    fix_noise: True
+
+    force_same: False
+
+time_per: 0.05
+
+# all is 10000
+nper: 10000
+
+# checkpoint times in minutes, needed for condor in case we pass a batch system
+# limit such as in the condor scavenge.
+# 0 means after the first object
+
+# checkpoints for lsf
+checkpoints: [0,
+              30,60,
+              90,120, 
+              150,180,
+              210,240,
+              270,300,
+              330,360,
+              390,420]
