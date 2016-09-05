@@ -151,8 +151,40 @@ v007ln
 		  c1: 3.794e-05 +/- 1.562e-05
 		  c2: -2.848e-05 +/- 1.568e-05
 
-- mcal-w008ln-01
+v008ln
+--------
+- pure pixel scale 1.0 (not even using dudx etc.)
+- psf pure e2, high ellip
+
+- mcal-w008ln-02
 	- fitting version, gauss/gauss
+    -  more accurate, and less noisy
+        R: [ 0.83006652  0.83085815]
+        Rpsf: [ 0.17082828  0.17011149]
+          m1: -4.613e-05 +/- 6.200e-05 c1: -1.481e-06 +/- 2.129e-06  r1: -0.0248
+          m2: -2.432e-04 +/- 6.307e-05 c2: 3.173e-05 +/- 2.049e-06  r2: 0.132
+          m:  -1.384e-04 +/- 4.464e-05
+          c1: -1.403e-06 +/- 2.101e-06
+          c2: 3.218e-05 +/- 2.110e-06
+
+v009ln
+---------
+- similar to BFD sim
+
+- mcal-w009ln-03
+    - get dk from not-deconvolved, interpolated galaxy image
+    - may want to do this differently
+        - get dk from deconvolved?
+        - fix dk?  0.1 seems to be a favorite for this sim
+        - not sure stepK is what we want; docs say
+        "Returns sampling in k space necessary to avoid folding of image in x
+        space."
+        so this is about optimizing real space not k space
+    - might want to draw k then shear it?
+
+- mcal-w009ln-04
+    - fixing dk and sizes
+
 
 great3reredux v3
 ----------------
