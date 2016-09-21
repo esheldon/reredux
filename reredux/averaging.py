@@ -748,7 +748,7 @@ def fit_m_c_boot(data, nboot=1000):
     return fits, fitsone
 
 
-def fit_m_c(data, doprint=True, onem=False, max_shear=None, nocorr_select=False):
+def fit_m_c(data, doprint=True, onem=False, max_shear=None, nocorr_select=False, nsig=2.0):
 
     strue = data['shear_true']
 
@@ -772,6 +772,7 @@ def fit_m_c(data, doprint=True, onem=False, max_shear=None, nocorr_select=False)
     c = numpy.zeros(2)
     cerr = numpy.zeros(2)
 
+    print("errors are %g sigma" % nsig)
     if onem:
         fits=numpy.zeros(1, dtype=[('m','f8'),
                                    ('merr','f8'),
@@ -795,9 +796,9 @@ def fit_m_c(data, doprint=True, onem=False, max_shear=None, nocorr_select=False)
         fits['c2err'] = perr[2]
 
         if doprint:
-            print('  m:  %.3e +/- %.3e' % (pars[0],perr[0]))
-            print('  c1: %.3e +/- %.3e' % (pars[1],perr[1]))
-            print('  c2: %.3e +/- %.3e' % (pars[2],perr[2]))
+            print('  m:  %.3e +/- %.3e' % (pars[0],nsig*perr[0]))
+            print('  c1: %.3e +/- %.3e' % (pars[1],nsig*perr[1]))
+            print('  c2: %.3e +/- %.3e' % (pars[2],nsig*perr[2]))
         return fits
 
     fits=numpy.zeros(1, dtype=[('m','f8',2),
@@ -820,9 +821,9 @@ def fit_m_c(data, doprint=True, onem=False, max_shear=None, nocorr_select=False)
         if doprint:
             print_m_c(i+1,
                       res['slope'],
-                      res['slope_err'],
+                      nsig*res['slope_err'],
                       res['offset'],
-                      res['offset_err'],
+                      nsig*res['offset_err'],
                       r=r)
 
     return fits

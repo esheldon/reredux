@@ -183,7 +183,7 @@ v009ln
     - might want to draw k then shear it?
 
 - mcal-w009ln-04
-    - fixing dk and sizes
+    - fixing dk and sizes and sigma weight
 
 
 great3reredux v3
