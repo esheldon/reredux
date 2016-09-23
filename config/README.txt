@@ -154,18 +154,66 @@ v007ln
 v008ln
 --------
 - pure pixel scale 1.0 (not even using dudx etc.)
+- no shape noise
 - psf pure e2, high ellip
 
-- mcal-w008ln-02
-	- fitting version, gauss/gauss
-    -  more accurate, and less noisy
-        R: [ 0.83006652  0.83085815]
-        Rpsf: [ 0.17082828  0.17011149]
-          m1: -4.613e-05 +/- 6.200e-05 c1: -1.481e-06 +/- 2.129e-06  r1: -0.0248
-          m2: -2.432e-04 +/- 6.307e-05 c2: 3.173e-05 +/- 2.049e-06  r2: 0.132
-          m:  -1.384e-04 +/- 4.464e-05
-          c1: -1.403e-06 +/- 2.101e-06
-          c2: 3.218e-05 +/- 2.110e-06
+    - mcal-w008ln-02
+        - fitting version, gauss/gauss
+        -  more accurate, and less noisy
+            R: [ 0.83006652  0.83085815]
+            Rpsf: [ 0.17082828  0.17011149]
+              m1: -4.613e-05 +/- 6.200e-05 c1: -1.481e-06 +/- 2.129e-06  r1: -0.0248
+              m2: -2.432e-04 +/- 6.307e-05 c2: 3.173e-05 +/- 2.049e-06  r2: 0.132
+              m:  -1.384e-04 +/- 4.464e-05
+              c1: -1.403e-06 +/- 2.101e-06
+              c2: 3.218e-05 +/- 2.110e-06
+    - mcal-w008ln-03
+        - moments
+        - applying what I learned from mcal-w009ln-07.
+            R: [ 0.23840567  0.23934622]
+            Rpsf: [ 0.  0.]
+              m1: -4.851e-03 +/- 4.605e-04 c1: 3.938e-05 +/- 1.581e-05  r1: -0.0248
+              m2: -8.092e-03 +/- 5.110e-04 c2: -2.638e-05 +/- 1.660e-05  r2: 0.132
+              m:  -6.368e-03 +/- 3.536e-04
+              c1: 4.067e-05 +/- 1.664e-05
+              c2: -1.898e-05 +/- 1.671e-05
+    - mcal-w008ln-04
+        - sigma 2.44 but using quintic interpolation
+            R: [ 0.37578757  0.37314253]
+            Rpsf: [ 0.  0.]
+              m1: -7.899e-03 +/- 4.259e-04 c1: 3.266e-05 +/- 1.462e-05  r1: -0.0248
+              m2: -9.574e-04 +/- 5.187e-04 c2: -8.229e-05 +/- 1.685e-05  r2: 0.132
+              m:  -4.650e-03 +/- 3.772e-04
+              c1: 2.989e-05 +/- 1.775e-05
+              c2: -9.813e-05 +/- 1.782e-05
+    - mcal-w008ln-05
+        - sigma 3.5 but using quintic interpolation
+        - looks bad
+            R: [ 0.21274103  0.23123689]
+            Rpsf: [ 0.  0.]
+              m1: 1.188e-01 +/- 5.209e-04 c1: 4.428e-05 +/- 1.788e-05  r1: -0.0248
+              m2: 2.641e-02 +/- 5.415e-04 c2: -8.582e-05 +/- 1.759e-05  r2: 0.132
+              m:  7.554e-02 +/- 2.343e-03
+              c1: 8.103e-05 +/- 1.103e-04
+              c2: 1.250e-04 +/- 1.107e-04
+    - mcal-w008ln-06
+        - sigma weight 1.5
+            R: [ 0.37039743  0.36800122]
+            Rpsf: [ 0.  0.]
+              m1: -6.594e-03 +/- 4.280e-04 c1: 3.369e-05 +/- 1.468e-05  r1: -0.0311
+              m2: -2.045e-04 +/- 5.185e-04 c2: -8.305e-05 +/- 1.687e-05  r2: 0.13
+              m:  -3.593e-03 +/- 3.719e-04
+              c1: 3.049e-05 +/- 1.751e-05
+              c2: -9.733e-05 +/- 1.757e-05
+
+    - mcal-w008ln-07
+        - new psf based dk/size/kmax/sigma_weight etc.
+        - quintic interp
+        - R values very scattered....
+    - mcal-w008ln-08
+        - same as 07 but lanczos15
+
+
 
 v009ln
 ---------
@@ -185,6 +233,23 @@ v009ln
 - mcal-w009ln-04
     - fixing dk and sizes
 
+- mcal-w009ln-05
+    - use preconvolve, now 1.6% better!
+    - preconv is using dk from before psf deconvolution....
+
+- mcal-w009ln-06
+    - fixed bug with noise.
+    - small run looks about the same though... hmmm. probablh not
+    - fixed size to 66 so don't get error weight too big, but this
+      could be a sign of a problem right?
+    dominated by that sort of thing then
+
+- mcal-w009ln-07
+    - leave dk free
+    - sigma weight 3.5
+    - don't force size, see what we get
+    - looks pretty good, so maybe part of the problem is the weight was
+      not small enough in k space
 
 great3reredux v3
 ----------------

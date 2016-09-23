@@ -59,7 +59,7 @@ def main():
     args = parser.parse_args()
 
     conf=reredux.files.read_config(args.runs[0])
-    if conf['fitter_type']=='metacal-deconv':
+    if 'metacal-deconv' in conf['fitter_type']:
         summer=reredux.averaging.SummerDeconv(args)
     else:
         summer=reredux.averaging.SummerReredux(args)
